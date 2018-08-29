@@ -48,6 +48,10 @@ tf.flags.DEFINE_integer('n_iters_per_eval', 5000,
 tf.flags.DEFINE_integer('random_seed', 19260817, 'Random seed')
 tf.flags.DEFINE_string('exp_uid_classifier', '_exp_0', 'exp_uid for classifier')
 
+# For specifying beheavior
+tf.flags.DEFINE_boolean('shuffle_only_once_for_paired_data', False,
+                        'Whether to shuffle only once for paired data.')
+
 # For Overriding configs
 tf.flags.DEFINE_integer('n_latent', 64, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')
@@ -148,7 +152,9 @@ def main(unused_argv):
   paired_data_iterator = common_joint.PairedDataIterator(
       train_mu_A, train_sigma_A, train_data_A, train_label_A,
       index_grouped_by_label_A, train_mu_B, train_sigma_B, train_data_B,
-      train_label_B, index_grouped_by_label_B, pairing_number, batch_size)
+      train_label_B, index_grouped_by_label_B, pairing_number, batch_size,
+      shuffle_only_once=FLAGS.shuffle_only_once_for_paired_data
+      )
   single_data_iterator_A_for_evaluation = common_joint.SingleDataIterator(
       train_mu_A, train_sigma_A, batch_size)
   single_data_iterator_B_for_evaluation = common_joint.SingleDataIterator(

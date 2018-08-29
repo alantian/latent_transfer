@@ -124,13 +124,16 @@ class InterGroupSamplingIndexIterator(object):
         label.
     pairing_number: An integer indictating the umber of paired data to be used.
     batch_size: An integer indictating size of batch.
+    shuffle_only_once: An boolean indicating whether to shuffle the pairing
+        only once (e.g. in the beginning). Otherwise, the interator shuffles
+        in the beginning of every batch.
   """
 
   # Variable that in its name has A or B indictating their belonging of one side
   # of data has name consider to be invalid by pylint so we disable the warning.
   # pylint:disable=invalid-name
   def __init__(self, group_by_label_A, group_by_label_B, pairing_number,
-               batch_size):
+               batch_size, shuffle_only_once=False):
     assert len(group_by_label_A) == len(group_by_label_B)
     for _ in group_by_label_A:
       assert _
@@ -157,6 +160,9 @@ class InterGroupSamplingIndexIterator(object):
     self._sub_pos_A = [0] * n_label
     self._sub_pos_B = [0] * n_label
 
+    self.shuffle_only_once = shuffle_only_once
+    self._has_shuffled = False
+
   def __iter__(self):
     return self
 
@@ -178,7 +184,12 @@ class InterGroupSamplingIndexIterator(object):
 
   def pick_index(self, sub_pos, group_by_label, label):
     if sub_pos[label] == 0:
-      np.random.shuffle(group_by_label[label])
+      needs_shuffle = True
+      if self.shuffle_only_once and self._has_shuffled:
+        needs_shuffle = False
+      if needs_shuffle:
+        np.random.shuffle(group_by_label[label])
+        self._has_shuffled = True
 
     result = group_by_label[label][sub_pos[label]]
     sub_pos[label] = (sub_pos[label] + 1) % len(group_by_label[label])
@@ -274,6 +285,9 @@ class PairedDataIterator(object):
         (zero-based) label.
     pairing_number: An integer indictating the umber of paired data to be used.
     batch_size: An integer indictating size of batch.
+    shuffle_only_once: An boolean indicating whether to shuffle the pairing
+        only once (e.g. in the beginning). Otherwise, the interator shuffles
+        in the beginning of every batch.
   """
 
   # Variable that in its name has A or B indictating their belonging of one side
@@ -282,7 +296,8 @@ class PairedDataIterator(object):
 
   def __init__(self, mu_A, sigma_A, train_data_A, label_A,
                index_grouped_by_label_A, mu_B, sigma_B, train_data_B, label_B,
-               index_grouped_by_label_B, pairing_number, batch_size):
+               index_grouped_by_label_B, pairing_number, batch_size,
+               shuffle_only_once=False):
     self._data_helper_A = GuasssianDataHelper(mu_A, sigma_A)
     self._data_helper_B = GuasssianDataHelper(mu_B, sigma_B)
 
@@ -291,6 +306,7 @@ class PairedDataIterator(object):
         index_grouped_by_label_B,
         pairing_number,
         batch_size,
+        shuffle_only_once=shuffle_only_once,
     )
 
     self.label_A, self.label_B = label_A, label_B
