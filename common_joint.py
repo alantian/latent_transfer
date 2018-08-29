@@ -161,8 +161,8 @@ class InterGroupSamplingIndexIterator(object):
     self._sub_pos_B = [0] * n_label
 
     self.shuffle_only_once = shuffle_only_once
-    self._has_shuffled = False
-
+    self._has_shuffled = {'A': False, 'B': False}
+    
   def __iter__(self):
     return self
 
@@ -174,22 +174,22 @@ class InterGroupSamplingIndexIterator(object):
     batch = []
     for i in range(self._pos, self._pos + self.batch_size):
       label = i % self.n_label
-      index_A = self.pick_index(self._sub_pos_A, self.group_by_label_A, label)
-      index_B = self.pick_index(self._sub_pos_B, self.group_by_label_B, label)
+      index_A = self.pick_index(self._sub_pos_A, self.group_by_label_A, label, 'A')
+      index_B = self.pick_index(self._sub_pos_B, self.group_by_label_B, label, 'B')
       batch.append((index_A, index_B))
     batch = np.array(batch, dtype=np.int32)
 
     self._pos += self.batch_size
     return batch
 
-  def pick_index(self, sub_pos, group_by_label, label):
+  def pick_index(self, sub_pos, group_by_label, label, side):
     if sub_pos[label] == 0:
       needs_shuffle = True
-      if self.shuffle_only_once and self._has_shuffled:
+      if self.shuffle_only_once and self._has_shuffled[side]:
         needs_shuffle = False
       if needs_shuffle:
         np.random.shuffle(group_by_label[label])
-        self._has_shuffled = True
+        self._has_shuffled[side] = True
 
     result = group_by_label[label][sub_pos[label]]
     sub_pos[label] = (sub_pos[label] + 1) % len(group_by_label[label])
