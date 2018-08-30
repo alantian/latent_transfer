@@ -151,6 +151,8 @@ class InterGroupSamplingIndexIterator(object):
         n_use = max(len(group_by_label_A[i]), len(group_by_label_B[i]))
       group_by_label_A[i] = np.array(group_by_label_A[i])[:n_use]
       group_by_label_B[i] = np.array(group_by_label_B[i])[:n_use]
+      np.random.shuffle(group_by_label_A[i])
+      np.random.shuffle(group_by_label_B[i])
     self.group_by_label_A = group_by_label_A
     self.group_by_label_B = group_by_label_B
     self.batch_size = batch_size
@@ -161,7 +163,6 @@ class InterGroupSamplingIndexIterator(object):
     self._sub_pos_B = [0] * n_label
 
     self.shuffle_only_once = shuffle_only_once
-    self._has_shuffled = {'A': False, 'B': False}
     
   def __iter__(self):
     return self
@@ -184,12 +185,8 @@ class InterGroupSamplingIndexIterator(object):
 
   def pick_index(self, sub_pos, group_by_label, label, side):
     if sub_pos[label] == 0:
-      needs_shuffle = True
-      if self.shuffle_only_once and self._has_shuffled[side]:
-        needs_shuffle = False
-      if needs_shuffle:
+      if not self.shuffle_only_once:
         np.random.shuffle(group_by_label[label])
-        self._has_shuffled[side] = True
 
     result = group_by_label[label][sub_pos[label]]
     sub_pos[label] = (sub_pos[label] + 1) % len(group_by_label[label])

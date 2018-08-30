@@ -188,7 +188,7 @@ def get_index_grouped_by_label(label):
   return index_grouped_by_label
 
 
-def batch_image(b, max_images=64, rows=None, cols=None):
+def batch_image(b, max_images=60, rows=6, cols=10):
   """Turn a batch of images into a single image mosaic."""
   mb = min(b.shape[0], max_images)
   if rows is None:

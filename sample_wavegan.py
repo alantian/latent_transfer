@@ -22,7 +22,7 @@ from __future__ import division
 from __future__ import print_function
 
 from operator import itemgetter
-from os.path import join
+from os.path import join, expanduser
 
 import numpy as np
 from scipy.io import wavfile
@@ -53,10 +53,8 @@ def main(unused_argv):
 
   del unused_argv
 
-  use_gaussian_pretrained_model = FLAGS.use_gaussian_pretrained_model
-
-  gen_ckpt_dir = FLAGS.gen_ckpt_dir
-  inception_ckpt_dir = FLAGS.inception_ckpt_dir
+  gen_ckpt_dir = expanduser(FLAGS.gen_ckpt_dir)
+  inception_ckpt_dir = expanduser(FLAGS.inception_ckpt_dir)
 
   # TF init
   tf.reset_default_graph()
@@ -64,13 +62,10 @@ def main(unused_argv):
   graph_gan = tf.Graph()
   with graph_gan.as_default():
     sess_gan = tf.Session(graph=graph_gan)
-    if use_gaussian_pretrained_model:
-      saver_gan = tf.train.import_meta_graph(
-          join(gen_ckpt_dir, '..', 'infer', 'infer.meta'))
-      saver_gan.restore(sess_gan, join(gen_ckpt_dir, 'model.ckpt'))
-    else:
-      saver_gan = tf.train.import_meta_graph(join(gen_ckpt_dir, 'infer.meta'))
-      saver_gan.restore(sess_gan, join(gen_ckpt_dir, 'model.ckpt'))
+    saver_gan = tf.train.import_meta_graph(
+        join(gen_ckpt_dir, '..', 'infer', 'infer.meta'))
+    saver_gan.restore(sess_gan, join(gen_ckpt_dir, 'model.ckpt'))
+
   # - classifier (inception)
   graph_class = tf.Graph()
   with graph_class.as_default():
@@ -89,8 +84,7 @@ def main(unused_argv):
 
   # Sample something AND classify them
 
-  output_dir = FLAGS.latent_dir
-
+  output_dir = expanduser(FLAGS.latent_dir)
   tf.gfile.MakeDirs(output_dir)
 
   np.random.seed(19260817)
@@ -108,10 +102,7 @@ def main(unused_argv):
       pbar.update(min_label_count - last_min_label_count)
       last_min_label_count = min_label_count
 
-      if use_gaussian_pretrained_model:
-        _z = np.random.randn(batch_size, hidden_dim)
-      else:
-        _z = (np.random.rand(batch_size, hidden_dim) * 2.) - 1.
+      _z = np.random.randn(batch_size, hidden_dim)
       # _G_z, _G_z_spec = sess_gan.run([G_z, G_z_spec], {z: _z})
       _G_z = sess_gan.run(G_z, {z: _z})
       _x = _G_z
