@@ -74,6 +74,8 @@ config = {
     'mean_recons_B_align_beta': FLAGS.mean_recons_B_align_beta,
     'mean_recons_A_to_B_align_beta': FLAGS.mean_recons_A_to_B_align_beta,
     'mean_recons_B_to_A_align_beta': FLAGS.mean_recons_B_to_A_align_beta,
+    'mean_recons_A_to_B_align_free_budget': FLAGS.mean_recons_A_to_B_align_free_budget,
+    'mean_recons_B_to_A_align_free_budget': FLAGS.mean_recons_B_to_A_align_free_budget,
     'pairing_number': FLAGS.pairing_number,
     # training dynamics
     'batch_size': batch_size,

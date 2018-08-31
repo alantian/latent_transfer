@@ -351,12 +351,18 @@ class Model(snt.AbstractModule):
         tf.square(x_B_to_A_align - x_align_A))
     mean_recons_A_to_B_align_beta = config.get('mean_recons_A_to_B_align_beta',
                                                0.0)
-    scaled_mean_recons_A_to_B_align = (
-        mean_recons_A_to_B_align * mean_recons_A_to_B_align_beta)
+    mean_recons_A_to_B_align_free_budget = config.get(
+        'mean_recons_A_to_B_align_free_budget', 0.0)
+    scaled_mean_recons_A_to_B_align = (tf.maximum(
+        mean_recons_A_to_B_align - mean_recons_A_to_B_align_free_budget, 0.0) *
+                                       mean_recons_A_to_B_align_beta)
     mean_recons_B_to_A_align_beta = config.get('mean_recons_B_to_A_align_beta',
                                                0.0)
-    scaled_mean_recons_B_to_A_align = (
-        mean_recons_B_to_A_align * mean_recons_B_to_A_align_beta)
+    mean_recons_B_to_A_align_free_budget = config.get(
+        'mean_recons_B_to_A_align_free_budget', 0.0)
+    scaled_mean_recons_B_to_A_align = (tf.maximum(
+        mean_recons_B_to_A_align - mean_recons_B_to_A_align_free_budget, 0.0) *
+                                       mean_recons_B_to_A_align_beta)
     scaled_mean_recons_cross_A_B_align = (
         scaled_mean_recons_A_to_B_align + scaled_mean_recons_B_to_A_align)
 

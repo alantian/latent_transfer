@@ -116,6 +116,196 @@ run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
   --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
   ;
 
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.05 --mean_recons_B_to_A_align_beta 0.05 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.025_0.025" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.025 --mean_recons_B_to_A_align_beta 0.025 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.0_0.0_0.0_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.0 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_2.0_2.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 2.0 --mean_recons_B_to_A_align_free_budget 2.0 \
+  ;
+
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_1.4_1.4" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 1.4 --mean_recons_B_to_A_align_free_budget 1.4 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_1.3_1.3" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 1.3 --mean_recons_B_to_A_align_free_budget 1.3 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_1.2_1.2" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 1.2 --mean_recons_B_to_A_align_free_budget 1.2 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_1.1_1.1" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 1.1 --mean_recons_B_to_A_align_free_budget 1.1 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_1.0_1.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_0.75_0.75" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.75 --mean_recons_B_to_A_align_free_budget 0.75 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_0.5_0.5" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.5 --mean_recons_B_to_A_align_free_budget 0.5 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.5_0.5_fb_0.25_0.25" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.25 --mean_recons_B_to_A_align_free_budget 0.25 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05_fb_1.0_1.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.05 --mean_recons_B_to_A_align_beta 0.05 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05_fb_0.75_0.75" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.05 --mean_recons_B_to_A_align_beta 0.05 \
+  --mean_recons_A_to_B_align_free_budget 0.75 --mean_recons_B_to_A_align_free_budget 0.75 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_0.75_0.75" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 0.75 --mean_recons_B_to_A_align_free_budget 0.75 \
+  ;
+
 
 
 ```

@@ -175,15 +175,15 @@ class InterGroupSamplingIndexIterator(object):
     batch = []
     for i in range(self._pos, self._pos + self.batch_size):
       label = i % self.n_label
-      index_A = self.pick_index(self._sub_pos_A, self.group_by_label_A, label, 'A')
-      index_B = self.pick_index(self._sub_pos_B, self.group_by_label_B, label, 'B')
+      index_A = self.pick_index(self._sub_pos_A, self.group_by_label_A, label)
+      index_B = self.pick_index(self._sub_pos_B, self.group_by_label_B, label)
       batch.append((index_A, index_B))
     batch = np.array(batch, dtype=np.int32)
 
     self._pos += self.batch_size
     return batch
 
-  def pick_index(self, sub_pos, group_by_label, label, side):
+  def pick_index(self, sub_pos, group_by_label, label):
     if sub_pos[label] == 0:
       if not self.shuffle_only_once:
         np.random.shuffle(group_by_label[label])
