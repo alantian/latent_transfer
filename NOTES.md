@@ -8,6 +8,43 @@ be safely removed if it's not needed.
 
 ```bash
 
+## VAE
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_0"  #GPU0
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_1"  #GPU1
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_0"  #GPU0
+run_ml_docker python3 ./train_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_1"  #GPU1
+
+## Classifier
+run_ml_docker python3 ./train_dataspace_classifier.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_classifier_0 --exp_uid "_exp_0"  #DONE
+run_ml_docker python3 ./train_dataspace_classifier.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_classifier_0 --exp_uid "_exp_1"  #DONE
+run_ml_docker python3 ./train_dataspace_classifier.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_classifier_0 --exp_uid "_exp_0"  #DONE
+
+## VAE (Unconditional) Sample
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_0" # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_1" # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_0" # DONE
+run_ml_docker python3 ./sample_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_1" # DONE
+
+
+## MNIST VAE Encode Data
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent64 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_0" # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent64 --exp_uid "_exp_1" # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_0"  # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config mnist_0_nlatent100 --exp_uid "_exp_1"  # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_0" # DONE
+run_ml_docker python3 ./encode_dataspace.py --default_scratch "~/workspace/scratch/latent_transfer/" --config fashion_mnist_0_nlatent100 --exp_uid "_exp_1" # DONE
+
+
 ## sample WaveGAN using classifier.
 
 run_ml_docker python3 ./sample_wavegan.py \
@@ -16,7 +53,8 @@ run_ml_docker python3 ./sample_wavegan.py \
   --latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian/" \
   ;
 
-
+## Tensorboard
+run_ml_docker --docker-extra-args "-p 6006:6006" tensorboard --logdir ~/workspace/scratch/latent_transfer/joint/
 
 
 ## Transfer model
@@ -297,15 +335,50 @@ run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
 run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
   --default_scratch "~/workspace/scratch/latent_transfer/" \
   --config joint_exp_2mnist_parameterized \
-  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_0.75_0.75" \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_1.0_1.0" \
   --shuffle_only_once_for_paired_data=true \
   --pairing_number -1 \
   --prior_loss_align_beta 0.02 \
   --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
   --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
-  --mean_recons_A_to_B_align_free_budget 0.75 --mean_recons_B_to_A_align_free_budget 0.75 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
   ;
 
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_1.0_1.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_pnall_soofpd_b0.0_0.0_0.0_0.0_0.0_fb_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.0 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_pnall_soofpd_b0.02_0.5_0.5_0.0_0.0_fb_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
 
 
 ```

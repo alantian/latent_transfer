@@ -55,6 +55,10 @@ def main(unused_argv):
   basepath = dataset.basepath
   save_path = dataset.save_path
   train_data = dataset.train_data
+  attr_train = dataset.attr_train
+
+  train_label = np.argmax(attr_train, axis=-1)  # from one-hot to label
+  index_grouped_by_label = common.get_index_grouped_by_label(train_label)
 
   # Make the directory
   save_dir = os.path.join(save_path, model_uid)
@@ -82,7 +86,7 @@ def main(unused_argv):
                         os.path.join(best_dir, 'vae_best_%s.ckpt' % model_uid))
 
     # Sample from prior
-    sample_count = 64
+    sample_count = 60
 
     image_path = os.path.join(basepath, 'sample', model_uid)
     tf.gfile.MakeDirs(image_path)
@@ -106,9 +110,12 @@ def main(unused_argv):
     common.save_image(
         batch_image_grid(x_grid), os.path.join(image_path, 'sample_grid.png'))
 
-    # Reconstruction
-    sample_count = 64
-    x_real = train_data[:sample_count]
+    # Reconstruction (image grouped by label)
+    sample_count = 60
+    sample_index = []
+    for i in range(sample_count):
+      sample_index.append(index_grouped_by_label[i % 10][i // 10])
+    x_real = train_data[sample_index]
     mu, sigma = sess.run([m.mu, m.sigma], {m.x: x_real})
     x_rec = sess.run(m.x_mean, {m.mu: mu, m.sigma: sigma})
     x_rec = common.post_proc(x_rec, config)
