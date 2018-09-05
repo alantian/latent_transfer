@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+echo "[$(date)] Start!"
+
+n_gpu=$(nvidia-smi -L | wc -l)
+
+function is_gpu_available (){
+  id=$1
+  nvidia-smi -i $id -q  | grep -q "Processes                       : None"
+  exit_status=$?
+  if [ $exit_status -eq 0 ]; then
+    echo true
+  else
+    echo false
+  fi
+}
+
+while [ 1 ] ; do
+  good_gpu_id="none"
+  for i in `seq 0 $(($n_gpu - 1))` ; do
+    is_good=$(is_gpu_available $i)
+    if [[ "$is_good" = true ]] ; then
+      good_gpu_id=$i
+      break
+    fi
+  done
+
+  if [[ "$good_gpu_id" = none ]]; then
+    echo -en "\r[$(date)] No empty GPU. Will wait for a while (1-2 mins) and retry..."
+    sleep 60
+    sleep $((RANDOM % 61))
+  else
+    echo -en "\r[$(date)] Find empty GPU with id $good_gpu_id. Will run \"$@\" on it"
+    echo
+    export CUDA_VISIBLE_DEVICES="$good_gpu_id"
+    "$@"
+    exit $?
+  fi
+done

@@ -57,6 +57,8 @@ tf.flags.DEFINE_float('mean_recons_A_align_beta', 0.0, '')
 tf.flags.DEFINE_float('mean_recons_B_align_beta', 0.0, '')
 tf.flags.DEFINE_float('mean_recons_A_to_B_align_beta', 0.0, '')
 tf.flags.DEFINE_float('mean_recons_B_to_A_align_beta', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_A_to_B_align_free_budget', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_B_to_A_align_free_budget', 0.0, '')
 tf.flags.DEFINE_integer('pairing_number', 1024, '')
 
 # For controling interpolation

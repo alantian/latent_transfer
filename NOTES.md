@@ -380,5 +380,306 @@ run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
   --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
   ;
 
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.00_0.0_0.0_0.0_0.0_fb_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.00 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.02_0.5_0.5_0.0_0.0_fb_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_1.0_1.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05_fb_0.0_0.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.05 --mean_recons_B_to_A_align_beta 0.05 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05_fb_1.0_1.0" \
+  --shuffle_only_once_for_paired_data=true \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.05 --mean_recons_B_to_A_align_beta 0.05 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_run_1_nls8_pnall_b0.02_0.5_0.5_0.0_0.0_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_run_1_nls8_pnall_b0.0_0.0_0.0_0.0_0.0_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.0 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_run_1_nls8_pnall_b0.0_0.0_0.0_0.0_0.0_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.0 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_run_1_nls8_pnall_b0.02_0.5_0.5_0.1_0.1_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_0.1_0.1_fb_1.0_1.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_0.1_3.0_fb_1.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.1 --mean_recons_B_to_A_align_beta 3.0 \
+  --mean_recons_A_to_B_align_free_budget 1.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_3.0_0.1_fb_0.0_1.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 3.0 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_10.0_0.1_fb_0.0_1.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 10.0 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 --n_iters 40000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_0.5_0.1_fb_0.0_1.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.1 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 1.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 --n_iters 40000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_0.5_0.5_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 --n_iters 40000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.0_0.0_0.0_0.0_0.0_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.00 \
+  --mean_recons_A_align_beta 0.0 --mean_recons_B_align_beta 0.0 \
+  --mean_recons_A_to_B_align_beta 0.0 --mean_recons_B_to_A_align_beta 0.0 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_0.5_0.5_0.5_fb_0.0_0.0_run2" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 0.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_1.5_0.5_0.5_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 1.5 \
+  --mean_recons_A_to_B_align_beta 0.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint.py  --n_iters_per_eval 1000 \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config joint_exp_mnist100_2wavegan_v2_parameterized \
+  --exp_uid "_exp_mc_mnist100_2wavegann_v2_run_1_nls8_pnall_b0.02_0.5_1.5_1.5_0.5_fb_0.0_0.0" \
+  --n_latent_shared 8 \
+  --pairing_number -1 \
+  --prior_loss_align_beta 0.02 \
+  --mean_recons_A_align_beta 0.5 --mean_recons_B_align_beta 1.5 \
+  --mean_recons_A_to_B_align_beta 1.5 --mean_recons_B_to_A_align_beta 0.5 \
+  --mean_recons_A_to_B_align_free_budget 0.0 --mean_recons_B_to_A_align_free_budget 0.0 \
+  ;
+
+
+
+
+## Interpolation of Transfer model
+
+run_ml_docker ./run_with_available_gpu python3 ./interpolate_joint.py  \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_2mnist_parameterized \
+  --exp_uid "_exp_mc_2mnist_run_1_pnall_soofpd_b0.02_0.5_0.5_0.1_0.1_fb_1.0_1.0" \
+  --load_ckpt_iter 90000  \
+  --interpolate_labels "0,1,7,8,3" \
+  --nb_images_between_labels 10 \
+  ;
+
+run_ml_docker ./run_with_available_gpu python3 ./interpolate_joint.py  \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config joint_exp_mnist2fashion_parameterized \
+  --exp_uid "_exp_mc_mnist2fashion_run_1_nls8_pnall_soofpd_b0.02_0.5_0.5_0.05_0.05_fb_1.0_1.0" \
+  --n_latent_shared 8 \
+  --load_ckpt_iter 90000  \
+  --interpolate_labels "0,1,7,8,3" \
+  --nb_images_between_labels 10 \
+  ;
+
+
 
 ```
