@@ -20,7 +20,7 @@ from functools import partial
 
 import nn
 
-n_latent = 100
+n_latent = 64
 
 Encoder = partial(nn.EncoderMNIST, n_latent=n_latent)
 Decoder = nn.DecoderMNIST
@@ -36,5 +36,5 @@ config = {
     'crop_width': 108,
     'batch_size': 512,
     'beta': 1.0,
-    'x_sigma': 0.1,
+    'x_sigma': 1.0,
 }

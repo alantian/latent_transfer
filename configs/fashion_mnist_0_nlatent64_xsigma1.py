@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Config for MNIST with nlatent=64.
+"""Config for Fashion-MNIST with nlatent=64.
 """
 
 # pylint:disable=invalid-name
@@ -20,7 +20,7 @@ from functools import partial
 
 import nn
 
-n_latent = 100
+n_latent = 64
 
 Encoder = partial(nn.EncoderMNIST, n_latent=n_latent)
 Decoder = nn.DecoderMNIST
@@ -31,10 +31,10 @@ config = {
     'Decoder': Decoder,
     'Classifier': Classifier,
     'n_latent': n_latent,
-    'dataset': 'MNIST',
+    'dataset': 'FASHION-MNIST',
     'img_width': 28,
     'crop_width': 108,
     'batch_size': 512,
     'beta': 1.0,
-    'x_sigma': 0.1,
+    'x_sigma': 1.0,
 }

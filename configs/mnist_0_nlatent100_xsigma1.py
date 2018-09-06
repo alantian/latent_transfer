@@ -36,5 +36,5 @@ config = {
     'crop_width': 108,
     'batch_size': 512,
     'beta': 1.0,
-    'x_sigma': 0.1,
+    'x_sigma': 1.0,
 }
