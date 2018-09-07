@@ -34,6 +34,8 @@ FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer('total_per_label', '7000',
                         'Minimal # samples per label')
 tf.flags.DEFINE_integer('top_per_label', '1700', '# of top samples per label')
+tf.flags.DEFINE_boolean('selective', True,
+                        'Whethor to be selective in finding top samples')
 tf.flags.DEFINE_string('gen_ckpt_dir', '',
                        'The directory to WaveGAN generator\'s ckpt.')
 tf.flags.DEFINE_string(
@@ -93,7 +95,7 @@ def main(unused_argv):
   group_by_label = [[] for _ in range(10)]
   batch_size = 200
   hidden_dim = 100
-
+  tf.logging.info('`selective` is %s', FLAGS.selective)
   with tqdm(desc='min label count', unit=' #', total=total_per_label) as pbar:
     label_count = [0] * 10
     last_min_label_count = 0
@@ -117,14 +119,16 @@ def main(unused_argv):
 
         if len(group_by_label[label]) >= top_per_label * 2:
           # remove unneeded tails
-          group_by_label[label].sort(key=itemgetter(0), reverse=True)
+          if FLAGS.selective:
+            group_by_label[label].sort(key=itemgetter(0), reverse=True)
           group_by_label[label] = group_by_label[label][:top_per_label]
 
       if last_min_label_count >= total_per_label:
         break
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    if FLAGS.selective:
+      group_by_label[label].sort(key=itemgetter(0), reverse=True)
     group_by_label[label] = group_by_label[label][:top_per_label]
 
   # output a few samples as image
@@ -132,7 +136,8 @@ def main(unused_argv):
   tf.gfile.MakeDirs(image_output_dir)
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    if FLAGS.selective:
+      group_by_label[label].sort(key=itemgetter(0), reverse=True)
     index = 0
     for confidence, (
         _,

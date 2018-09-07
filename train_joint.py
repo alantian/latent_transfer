@@ -53,6 +53,10 @@ tf.flags.DEFINE_boolean('shuffle_only_once_for_paired_data', False,
                         'Whether to shuffle only once for paired data.')
 
 # For Overriding configs
+tf.flags.DEFINE_string('mnist_family_config_A', '', '')
+tf.flags.DEFINE_string('mnist_family_config_B', '', '')
+tf.flags.DEFINE_string('mnist_family_config_classifier_A', '', '')
+tf.flags.DEFINE_string('mnist_family_config_classifier_B', '', '')
 tf.flags.DEFINE_integer('n_latent', 64, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')
 tf.flags.DEFINE_float('prior_loss_beta_A', 0.01, '')
@@ -152,11 +156,19 @@ def main(unused_argv):
   single_data_iterator_B = common_joint.SingleDataIterator(
       train_mu_B, train_sigma_B, batch_size)
   paired_data_iterator = common_joint.PairedDataIterator(
-      train_mu_A, train_sigma_A, train_data_A, train_label_A,
-      index_grouped_by_label_A, train_mu_B, train_sigma_B, train_data_B,
-      train_label_B, index_grouped_by_label_B, pairing_number, batch_size,
-      shuffle_only_once=FLAGS.shuffle_only_once_for_paired_data
-      )
+      train_mu_A,
+      train_sigma_A,
+      train_data_A,
+      train_label_A,
+      index_grouped_by_label_A,
+      train_mu_B,
+      train_sigma_B,
+      train_data_B,
+      train_label_B,
+      index_grouped_by_label_B,
+      pairing_number,
+      batch_size,
+      shuffle_only_once=FLAGS.shuffle_only_once_for_paired_data)
   single_data_iterator_A_for_evaluation = common_joint.SingleDataIterator(
       train_mu_A, train_sigma_A, batch_size)
   single_data_iterator_B_for_evaluation = common_joint.SingleDataIterator(
