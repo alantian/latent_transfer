@@ -132,8 +132,12 @@ class InterGroupSamplingIndexIterator(object):
   # Variable that in its name has A or B indictating their belonging of one side
   # of data has name consider to be invalid by pylint so we disable the warning.
   # pylint:disable=invalid-name
-  def __init__(self, group_by_label_A, group_by_label_B, pairing_number,
-               batch_size, shuffle_only_once=False):
+  def __init__(self,
+               group_by_label_A,
+               group_by_label_B,
+               pairing_number,
+               batch_size,
+               shuffle_only_once=False):
     assert len(group_by_label_A) == len(group_by_label_B)
     for _ in group_by_label_A:
       assert _
@@ -163,7 +167,7 @@ class InterGroupSamplingIndexIterator(object):
     self._sub_pos_B = [0] * n_label
 
     self.shuffle_only_once = shuffle_only_once
-    
+
   def __iter__(self):
     return self
 
@@ -291,9 +295,19 @@ class PairedDataIterator(object):
   # of data has name consider to be invalid by pylint so we disable the warning.
   # pylint:disable=invalid-name
 
-  def __init__(self, mu_A, sigma_A, train_data_A, label_A,
-               index_grouped_by_label_A, mu_B, sigma_B, train_data_B, label_B,
-               index_grouped_by_label_B, pairing_number, batch_size,
+  def __init__(self,
+               mu_A,
+               sigma_A,
+               train_data_A,
+               label_A,
+               index_grouped_by_label_A,
+               mu_B,
+               sigma_B,
+               train_data_B,
+               label_B,
+               index_grouped_by_label_B,
+               pairing_number,
+               batch_size,
                shuffle_only_once=False):
     self._data_helper_A = GuasssianDataHelper(mu_A, sigma_A)
     self._data_helper_B = GuasssianDataHelper(mu_B, sigma_B)
@@ -610,6 +624,8 @@ class ModelHelper(object):
       x_is_real_x: An boolean indicating whether `x` is already in dataspace. If
           not, `x` is converted to dataspace before saving
     """
+    if not x_is_real_x:
+      np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
     real_x = common.post_proc(real_x, self.config)
     batched_real_x = common.batch_image(real_x)
@@ -737,6 +753,8 @@ class ModelWaveGANHelper(object):
       x_is_real_x: An boolean indicating whether `x` is already in dataspace. If
           not, `x` is converted to dataspace before saving
     """
+    if not x_is_real_x:
+      np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
     real_x = real_x.reshape(-1)
     sample_file = join(save_dir, '%s.wav' % name)

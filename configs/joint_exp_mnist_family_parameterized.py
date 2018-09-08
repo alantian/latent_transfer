@@ -26,7 +26,7 @@ FLAGS = tf.flags.FLAGS
 
 n_latent = FLAGS.n_latent
 n_latent_shared = FLAGS.n_latent_shared
-layers = (128,) * 4
+layers = (512,) * 8
 batch_size = 128
 
 Encoder = partial(
@@ -81,4 +81,5 @@ config = {
     'batch_size': batch_size,
     'n_latent': n_latent,
     'n_latent_shared': n_latent_shared,
+    'lr': FLAGS.lr,
 }

@@ -68,8 +68,17 @@ run_ml_docker ./run_with_available_gpu python3 ./sample_wavegan.py \
 
 
 ## for mnist2mnist_exp1, args are:
-##    n_latent_shared, pairing_number, prior_loss_align_beta, mean_recons_A_align_beta, mean_recons_B_align_beta, mean_recons_A_to_B_align_beta, mean_recons_B_to_A_align_beta, mean_recons_A_to_B_align_free_budget, mean_recons_B_to_A_align_free_budget
-./train_joint_run.sh mnist2mnist_exp1 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+##    n_latent_shared, pairing_number, prior_loss_beta_A, prior_loss_beta_B, prior_loss_align_beta, mean_recons_A_align_beta, mean_recons_B_align_beta, mean_recons_A_to_B_align_beta, mean_recons_B_to_A_align_beta, mean_recons_A_to_B_align_free_budget, mean_recons_B_to_A_align_free_budget (optional)runid
 
+
+# this is AE only
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0001 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run0
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run0
+./train_joint_run.sh mnist2mnist_exp_v2 100 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run0
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run1 # use lr=1-e4
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run2 # use layer=512*4,
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run3 # use layer=512*4, lr=1e-5
+./train_joint_run.sh mnist2mnist_exp_v2 8 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run4 # use layer=512*8, lr=1e-5
+./train_joint_run.sh mnist2mnist_exp_v2 100 -1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 run1 # use layer=512*8, lr=1e-5
 
 ```

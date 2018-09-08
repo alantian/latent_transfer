@@ -57,6 +57,7 @@ tf.flags.DEFINE_string('mnist_family_config_A', '', '')
 tf.flags.DEFINE_string('mnist_family_config_B', '', '')
 tf.flags.DEFINE_string('mnist_family_config_classifier_A', '', '')
 tf.flags.DEFINE_string('mnist_family_config_classifier_B', '', '')
+tf.flags.DEFINE_float('lr', 1e-4, '')
 tf.flags.DEFINE_integer('n_latent', 64, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')
 tf.flags.DEFINE_float('prior_loss_beta_A', 0.01, '')
@@ -69,6 +70,7 @@ tf.flags.DEFINE_float('mean_recons_B_to_A_align_beta', 0.0, '')
 tf.flags.DEFINE_float('mean_recons_A_to_B_align_free_budget', 0.0, '')
 tf.flags.DEFINE_float('mean_recons_B_to_A_align_free_budget', 0.0, '')
 tf.flags.DEFINE_integer('pairing_number', 1024, '')
+
 
 
 def load_config(config_name):
@@ -225,6 +227,12 @@ def main(unused_argv):
       def get_x_from_posterior_B():
         return next(single_data_iterator_B_for_evaluation)[0]
 
+      def get_mu_sigma_A(x_A):
+        return sess.run([m.mu_A, m.sigma_A], {m.x_A: x_A})
+
+      def get_mu_sigma_B(x_B):
+        return sess.run([m.mu_B, m.sigma_B], {m.x_B: x_B})
+
       def get_x_prime_A(x_A):
         return sess.run(m.x_prime_A, {m.x_A: x_A})
 
@@ -309,6 +317,8 @@ def main(unused_argv):
         manual_summary(func_name, func())
 
       # Sampling based evaluation / sampling
+      mu_A, sigma_A = get_mu_sigma_A(x_A)
+      mu_B, sigma_B = get_mu_sigma_B(x_B)
       x_prime_A = get_x_prime_A(x_A)
       x_prime_B = get_x_prime_B(x_B)
       x_from_prior_A = get_x_from_prior_A()
@@ -323,6 +333,7 @@ def main(unused_argv):
                                   '%010d' % i)
       tf.gfile.MakeDirs(this_iter_sample_dir)
 
+      # Saving instances
       for helper, var_names, x_is_real_x in [
           (one_side_helper_A.m_helper,
            ('x_A', 'x_prime_A', 'x_from_prior_A', 'x_B_to_A', 'x_align_A',
@@ -341,6 +352,15 @@ def main(unused_argv):
           var = locals().get(var_name, None)
           if var is not None:
             helper.save_data(var, var_name, this_iter_sample_dir, x_is_real_x)
+
+      # Save array in shared latent space.
+      def save_arr(var, var_name, save_dir):
+        np.savetxt(join(save_dir, '%s.array.txt' % var_name), var)
+
+      for var_name in ['mu_A', 'sigma_A', 'mu_B', 'sigma_B']:
+        var = locals().get(var_name, None)
+        if var is not None:
+          save_arr(var, var_name, this_iter_sample_dir)
 
   # pylint:enable=invalid-name
   # pylint:enable=unused-variable

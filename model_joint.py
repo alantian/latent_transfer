@@ -209,9 +209,9 @@ class VAE(snt.AbstractModule):
       # otherwise there would be
       # "No variables to optimize." / "No variables to save" error.
 
-      # Optimizer
-      train_vae = tf.train.AdamOptimizer(learning_rate=vae_lr).minimize(
-          vae_loss, var_list=vae_vars)
+      # Optimizer  (we shouldn't need it)
+      # train_vae = tf.train.AdamOptimizer(learning_rate=vae_lr).minimize(
+      #    vae_loss, var_list=vae_vars)
 
       # Savers
       vae_saver = tf.train.Saver(vae_vars, max_to_keep=100)
@@ -254,7 +254,8 @@ class Model(snt.AbstractModule):
     # ---------------------------------------------------------------------
 
     config = self.config
-    lr = config.get('lr', 3e-4)
+    # lr = config.get('lr', 3e-4)
+    lr = config['lr']
     n_latent_shared = config['n_latent_shared']
 
     if 'n_latent' in config:
@@ -271,11 +272,11 @@ class Model(snt.AbstractModule):
     vae_B = VAE(config['vae_B'], name='vae_B')
     vae_B()
 
-    vae_lr = tf.constant(lr)
+    # vae_lr = tf.constant(lr)
     vae_vars = vae_A.vae_vars + vae_B.vae_vars
-    vae_loss = vae_A.vae_loss + vae_B.vae_loss
-    train_vae = tf.train.AdamOptimizer(learning_rate=vae_lr).minimize(
-        vae_loss, var_list=vae_vars)
+    # vae_loss = vae_A.vae_loss + vae_B.vae_loss
+    # train_vae = tf.train.AdamOptimizer(learning_rate=vae_lr).minimize(
+    #    vae_loss, var_list=vae_vars)
     vae_saver = tf.train.Saver(vae_vars, max_to_keep=100)
 
     # ---------------------------------------------------------------------

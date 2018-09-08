@@ -21,6 +21,108 @@ import numpy as np
 import sonnet as snt
 import tensorflow as tf
 
+#----- Sliced Wasserstein Distance taken from
+#----- https://arxiv.org/pdf/1804.01947.pdf
+
+
+def sliced_wasserstein(a, b, n_proj, square_norm=False):
+  """Compute approximate Wasserstein distance.
+
+  Args:
+    a: (tensor, float32) First batch of samples (batch, dims).
+    b: (tensor, float32) Second batch of samples (batch, dims).
+    n_proj: (int) Number of random projections.
+    norm_func: (bool) Use a L2 norm as distance cost.
+
+  Returns:
+    wdist: (float) Approximate wasserstein distance.
+  """
+  batch_size = a.shape[0].value
+  dims = a.shape[1].value
+  theta = tf.random_normal(shape=[n_proj, dims], dtype=tf.float32)
+  theta *= tf.rsqrt(tf.reduce_sum(tf.square(theta), 1, keepdims=True))
+
+  # for l in range(L):
+  #   theta_[l,:]=theta_[l,:]/np.sqrt(np.sum(theta_[l,:]**2))
+
+  proj_a = tf.matmul(a, theta, transpose_b=True)
+  proj_b = tf.matmul(b, theta, transpose_b=True)
+  # Calculate the Sliced Wasserstein distance by sorting
+  wdist = (tf.nn.top_k(tf.transpose(proj_a), k=batch_size).values - tf.nn.top_k(
+      tf.transpose(proj_b), k=batch_size).values)
+  norm_func = tf.square if square_norm else tf.abs
+  wdist = tf.reduce_mean(norm_func(wdist))
+  return wdist
+
+
+# #----- Sliced Wasserstein Distance taken from google3/third_party/tensorflow
+# #----- /contrib/gan/python/eval/python/sliced_wasserstein_impl.py
+def sliced_wasserstein_svd(a, b):
+  """Compute the approximate sliced Wasserstein distance using an SVD.
+
+  This is not part of the paper, it's a variant with possibly more accurate
+  measure.
+
+  Args:
+      a: (matrix) Distribution "a" of samples (row, col).
+      b: (matrix) Distribution "b" of samples (row, col).
+  Returns:
+      Float containing the approximate distance between "a" and "b".
+  """
+  s = tf.shape(a)
+  # Random projection matrix.
+  sig, u = tf.svd(tf.concat([a, b], 0))[:2]
+  proj_a, proj_b = tf.split(u * sig, 2, axis=0)
+  proj_a = _sort_rows(proj_a[:, ::-1], s[0])
+  proj_b = _sort_rows(proj_b[:, ::-1], s[0])
+  # Pairwise Wasserstein distance.
+  wdist = tf.reduce_mean(tf.abs(proj_a - proj_b))
+  return wdist
+
+
+def _sort_rows(matrix, num_rows):
+  """Sort matrix rows by the last column.
+
+  Args:
+      matrix: a matrix of values (row,col).
+      num_rows: (int) number of sorted rows to return from the matrix.
+  Returns:
+      Tensor (num_rows, col) of the sorted matrix top K rows.
+  """
+  tmatrix = tf.transpose(matrix, [1, 0])
+  sorted_tmatrix = tf.nn.top_k(tmatrix, num_rows)[0]
+  return tf.transpose(sorted_tmatrix, [1, 0])
+
+
+def sliced_wasserstein_tfgan(a, b, random_sampling_count,
+                             random_projection_dim):
+  """Compute the approximate sliced Wasserstein distance.
+
+  Args:
+      a: (matrix) Distribution "a" of samples (row, col).
+      b: (matrix) Distribution "b" of samples (row, col).
+      random_sampling_count: (int) Number of random projections to average.
+      random_projection_dim: (int) Dimension of the random projection space.
+  Returns:
+      Float containing the approximate distance between "a" and "b".
+  """
+  s = tf.shape(a)
+  means = []
+  for _ in range(random_sampling_count):
+    # Random projection matrix.
+    proj = tf.random_normal([tf.shape(a)[1], random_projection_dim])
+    proj *= tf.rsqrt(tf.reduce_sum(tf.square(proj), 0, keepdims=True))
+    # Project both distributions and sort them.
+    proj_a = tf.matmul(a, proj)
+    proj_b = tf.matmul(b, proj)
+    proj_a = _sort_rows(proj_a, s[0])
+    proj_b = _sort_rows(proj_b, s[0])
+    # Pairwise Wasserstein distance.
+    wdist = tf.reduce_mean(tf.abs(proj_a - proj_b))
+    means.append(wdist)
+  return tf.reduce_mean(means)
+
+
 
 def product_two_guassian_pdfs(mu_1, sigma_1, mu_2, sigma_2):
   """Product of two Guasssian PDF."""
