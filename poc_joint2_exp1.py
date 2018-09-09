@@ -28,7 +28,9 @@ from os.path import join
 
 import numpy as np
 import matplotlib
-matplotlib.use('agg')  # avoid tkinter
+matplotlib.use(
+    'agg'
+)  # avoid tkinter. This should happen before importing matplotlib.pyplot
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import sonnet as snt
@@ -43,11 +45,114 @@ import model_joint
 ds = tf.contrib.distributions
 
 
+def affine(x, output_size, z=None, residual=False, softplus=False):
+  """Make an affine layer with optional residual link and softplus activation.
+
+  Args:
+    x: An TF tensor which is the input.
+    output_size: The size of output, e.g. the dimension of this affine layer.
+    z: An TF tensor which is added when residual link is enabled.
+    residual: A boolean indicating whether to enable residual link.
+    softplus: Whether to apply softplus activation at the end.
+
+  Returns:
+    The output tensor.
+  """
+  if residual:
+    x = snt.Linear(2 * output_size)(x)
+    z = snt.Linear(output_size)(z)
+    dz = x[:, :output_size]
+    gates = tf.nn.sigmoid(x[:, output_size:])
+    output = (1 - gates) * z + gates * dz
+  else:
+    output = snt.Linear(output_size)(x)
+
+  if softplus:
+    output = tf.nn.softplus(output)
+
+  return output
+
+
+class EncoderLatentFull(snt.AbstractModule):
+  """An MLP (Full layers) encoder for modeling latent space."""
+
+  def __init__(self,
+               input_size,
+               output_size,
+               layers=(2048,) * 4,
+               name='EncoderLatentFull',
+               residual=True):
+    super(EncoderLatentFull, self).__init__(name=name)
+    self.layers = layers
+    self.input_size = input_size
+    self.output_size = output_size
+    self.residual = residual
+
+  def _build(self, z):
+    assert isinstance(z, tuple)
+    z = tf.concat(z, axis=-1)
+
+    x = z
+    for l in self.layers:
+      x = tf.nn.relu(snt.Linear(l)(x))
+
+    mu = affine(x, self.output_size, z, residual=self.residual, softplus=False)
+    sigma = affine(
+        x, self.output_size, z, residual=self.residual, softplus=True)
+    return mu, sigma
+
+
+class DecoderLatentFull(snt.AbstractModule):
+  """An MLP (Full layers) decoder for modeling latent space."""
+
+  def __init__(self,
+               input_size,
+               output_size,
+               layers=(2048,) * 4,
+               name='DecoderLatentFull',
+               residual=True):
+    super(DecoderLatentFull, self).__init__(name=name)
+    self.layers = layers
+    self.input_size = input_size
+    self.output_size = output_size
+    self.residual = residual
+
+  def _build(self, z):
+    assert isinstance(z, tuple)
+    z = tf.concat(z, axis=-1)
+
+    x = z
+    for l in self.layers:
+      x = tf.nn.relu(snt.Linear(l)(x))
+
+    mu = affine(x, self.output_size, z, residual=self.residual, softplus=False)
+    return mu
+
+
 class VAE(snt.AbstractModule):
 
   def __init__(self, config, name=''):
     super(VAE, self).__init__(name=name)
     self.config = config
+
+  def encode(self, encoder, x, domain):
+    """Encode `x` using `encoder` with optional `domain`."""
+
+    if self.config['use_domain']:
+      # Sonnet expects tuple rather than list since tuple is not mutable.
+      input_ = (x, domain)
+    else:
+      input_ = (x,)
+    return encoder(input_)
+
+  def decode(self, decoder, z, domain):
+    """Decode `z` using `decoder` with optional `domain`."""
+    if self.config['use_domain']:
+      # Sonnet expects tuple rather than list since tuple is not mutable.
+      input_ = (z, domain)
+    else:
+      input_ = (z,)
+    return decoder(input_)
 
   def _build(self, unused_input=None):
 
@@ -75,10 +180,11 @@ class VAE(snt.AbstractModule):
     # ---------------------------------------------------------------------
     # Reconstruction
     x = tf.placeholder(tf.float32, shape=(None, n_latent))
-    mu, sigma = encoder(x)
+    x_domain = tf.placeholder(tf.float32, shape=(None, 2))
+    mu, sigma = self.encode(encoder, x, x_domain)
     q_z = ds.Normal(loc=mu, scale=sigma)
     q_z_sample = q_z.sample()
-    x_prime = decoder(q_z_sample)
+    x_prime = self.decode(decoder, q_z_sample, x_domain)
     recons = tf.reduce_mean(tf.square(x_prime - x))
     mean_recons = tf.reduce_mean(recons)
 
@@ -93,12 +199,14 @@ class VAE(snt.AbstractModule):
     prior_loss = mean_KL
 
     # ---------------------------------------------------------------------
-    # ## Unsupervised alignment
+    # ## Unsupervised alignment (training)
     # ---------------------------------------------------------------------
     x_A = tf.placeholder(tf.float32, shape=(None, n_latent))
     x_B = tf.placeholder(tf.float32, shape=(None, n_latent))
-    mu_A, sigma_A = encoder(x_A)
-    mu_B, sigma_B = encoder(x_B)
+    x_A_domain = tf.placeholder(tf.float32, shape=(None, 2))
+    x_B_domain = tf.placeholder(tf.float32, shape=(None, 2))
+    mu_A, sigma_A = self.encode(encoder, x_A, x_A_domain)
+    mu_B, sigma_B = self.encode(encoder, x_B, x_B_domain)
     q_z_sample_A = ds.Normal(loc=mu_A, scale=sigma_A).sample()
     q_z_sample_B = ds.Normal(loc=mu_B, scale=sigma_B).sample()
     random_sampling_count = config['random_sampling_count']
@@ -109,6 +217,20 @@ class VAE(snt.AbstractModule):
         random_sampling_count,
         random_projection_dim,
     )
+
+    # ---------------------------------------------------------------------
+    #  Domain Transfer (inferring)
+    # ---------------------------------------------------------------------
+    x_transfer = tf.placeholder(tf.float32, shape=(None, n_latent))
+    x_transfer_encode_domain = tf.placeholder(tf.float32, shape=(None, 2))
+    x_transfer_decode_domain = tf.placeholder(tf.float32, shape=(None, 2))
+
+    x_transfer_mu, x_transfer_sigma = self.encode(encoder, x_transfer,
+                                                  x_transfer_encode_domain)
+    q_z_transfer = ds.Normal(loc=x_transfer_mu, scale=x_transfer_sigma)
+    q_z_sample_transfer = q_z_transfer.sample()
+    x_prime_transfer = self.decode(decoder, q_z_sample_transfer,
+                                   x_transfer_decode_domain)
 
     # ---------------------------------------------------------------------
     # ## All looses
@@ -154,28 +276,50 @@ class SyntheticData(object):
   def sample(cls, batch_size):
     radius = np.random.uniform(size=(batch_size)) * (2 * np.pi)
     x = np.stack([np.cos(radius), np.sin(radius)], axis=-1)
-    return x
+    return x, radius
 
   @classmethod
   def sample_A(cls, batch_size):
-    x = cls.sample(batch_size)
+    x, radius = cls.sample(batch_size)
     x[:, 1] *= +0.5
     x[:, 0] += -0.5
     x += np.random.normal(size=(batch_size, 2)) * 0.025
-    attr = np.zeros(batch_size)
+    attr = 0.0 + radius / (2 * np.pi)  # range: [0.0, 1.0]
     return x, attr
 
   @classmethod
   def sample_B(cls, batch_size):
-    x = cls.sample(batch_size)
+    x, radius = cls.sample(batch_size)
     x[:, 0] *= +0.5
     x[:, 0] += +0.5
     x += np.random.normal(size=(batch_size, 2)) * 0.025
-    attr = np.ones(batch_size)
+    attr = 2.0 + radius / (2 * np.pi)  # range: 2.0 + [0.0, 1.0]
     return x, attr
+
+  @classmethod
+  def get_domain_A(cls, batch_size):
+    arr = np.zeros(shape=(batch_size, 2), dtype=np.float32)
+    arr[:, 0] = 1.0
+    return arr
+
+  @classmethod
+  def get_domain_B(cls, batch_size):
+    arr = np.zeros(shape=(batch_size, 2), dtype=np.float32)
+    arr[:, 1] = 1.0
+    return arr
 
 
 FLAGS = tf.flags.FLAGS
+
+tf.flags.DEFINE_integer('n_latent', 2, '')
+tf.flags.DEFINE_integer('n_latent_shared', 2, '')
+tf.flags.DEFINE_float('lr', 0.001, '')
+tf.flags.DEFINE_float('prior_loss_beta', 0.025, '')
+tf.flags.DEFINE_float('unsup_align_loss_beta', 0.0, '')
+tf.flags.DEFINE_integer('random_sampling_count', 128, '')
+tf.flags.DEFINE_integer('batch_size', 128, '')
+tf.flags.DEFINE_boolean('use_domain', False, '')
+tf.flags.DEFINE_string('sig_extra', '', '')
 
 
 def get_dirs(sig):
@@ -198,7 +342,7 @@ def draw_plot(xs, attrs, fpath):
   if x.shape[-1] == 1:
     x = np.stack([x, np.zeros_like(x)], axis=-1)
   fig, ax = plt.subplots()
-  sctr = ax.scatter(x=x[:, 0], y=x[:, 1], c=attr, cmap='RdYlGn', marker='.')
+  ax.scatter(x=x[:, 0], y=x[:, 1], c=attr, cmap='RdYlGn', marker='.')
   fig.savefig(fpath)
   plt.close(fig)
 
@@ -206,7 +350,17 @@ def draw_plot(xs, attrs, fpath):
 def main(unused_argv):
   del unused_argv
 
-  save_dir, sample_dir = get_dirs('vaeonly')
+  sig = 'nl{nl}_nls{nls}_lr{lr}_plb{plb}_ualb{ualb}_rsc{rsc}_bs{bs}_ud{ud}'.format(
+      nl=FLAGS.n_latent,
+      nls=FLAGS.n_latent_shared,
+      lr=FLAGS.lr,
+      plb=FLAGS.prior_loss_beta,
+      ualb=FLAGS.unsup_align_loss_beta,
+      rsc=FLAGS.random_sampling_count,
+      bs=FLAGS.batch_size,
+      ud=FLAGS.use_domain,
+  ) + FLAGS.sig_extra
+  save_dir, sample_dir = get_dirs(sig)
 
   # Plot true distribution
   x_A, attr_A = SyntheticData.sample_A(100)
@@ -214,38 +368,30 @@ def main(unused_argv):
   draw_plot([x_A, x_B], [attr_A, attr_B], join(sample_dir, 'true_dist.png'))
 
   # make model
-  n_latent = 2
-  n_latent_shared = 2
   layers = [8, 8, 8]
+  Encoder = partial(
+      EncoderLatentFull,
+      input_size=FLAGS.n_latent,
+      output_size=FLAGS.n_latent_shared,
+      layers=layers,
+  )
+  Decoder = partial(
+      DecoderLatentFull,
+      input_size=FLAGS.n_latent_shared,
+      output_size=FLAGS.n_latent,
+      layers=layers,
+  )
   vae_config = {
-      'Encoder':
-      partial(
-          model_joint.EncoderLatentFull,
-          input_size=n_latent,
-          output_size=n_latent_shared,
-          layers=layers,
-      ),
-      'Decoder':
-      partial(
-          model_joint.DecoderLatentFull,
-          input_size=n_latent_shared,
-          output_size=n_latent,
-          layers=layers,
-      ),
-      'prior_loss_beta':
-      0.025,
-      'random_sampling_count':
-      128,
-      'unsup_align_loss_beta':
-      0.0,
-      'batch_size':
-      128,
-      'n_latent':
-      n_latent,
-      'n_latent_shared':
-      n_latent_shared,
-      'lr':
-      0.001,
+      'Encoder': Encoder,
+      'Decoder': Decoder,
+      'prior_loss_beta': FLAGS.prior_loss_beta,
+      'random_sampling_count': FLAGS.random_sampling_count,
+      'unsup_align_loss_beta': FLAGS.unsup_align_loss_beta,
+      'batch_size': FLAGS.batch_size,
+      'n_latent': FLAGS.n_latent,
+      'n_latent_shared': FLAGS.n_latent_shared,
+      'lr': FLAGS.lr,
+      'use_domain': FLAGS.use_domain
   }
 
   tf.reset_default_graph()
@@ -267,21 +413,41 @@ def main(unused_argv):
   for i in tqdm(range(n_iters), desc='training', unit=' batch'):
     x_A, _ = SyntheticData.sample_A(batch_size)
     x_B, _ = SyntheticData.sample_B(batch_size)
-    res = sess.run([m.train_full, scalar_summaries], {
-        m.x: np.concatenate([x_A, x_B]),
-        m.x_A: x_A,
-        m.x_B: x_B,
-    })
+    x_A_domain = SyntheticData.get_domain_A(batch_size)
+    x_B_domain = SyntheticData.get_domain_B(batch_size)
+    res = sess.run(
+        [m.train_full, scalar_summaries], {
+            m.x: np.concatenate([x_A, x_B]),
+            m.x_domain: np.concatenate([x_A_domain, x_B_domain]),
+            m.x_A: x_A,
+            m.x_B: x_B,
+            m.x_A_domain: x_A_domain,
+            m.x_B_domain: x_B_domain,
+        })
     train_writer.add_summary(res[-1], i)
 
     if i % 100 == 0:
       sample_batch_size = 128
       x_A, attr_A = SyntheticData.sample_A(sample_batch_size)
       x_B, attr_B = SyntheticData.sample_B(sample_batch_size)
-      z_A = sess.run(m.q_z_sample, {m.x: x_A})
-      z_B = sess.run(m.q_z_sample, {m.x: x_B})
-      x_prime_A = sess.run(m.x_prime, {m.x: x_A})
-      x_prime_B = sess.run(m.x_prime, {m.x: x_B})
+      x_A_domain = SyntheticData.get_domain_A(batch_size)
+      x_B_domain = SyntheticData.get_domain_B(batch_size)
+      z_A = sess.run(m.q_z_sample, {m.x: x_A, m.x_domain: x_A_domain})
+      z_B = sess.run(m.q_z_sample, {m.x: x_B, m.x_domain: x_B_domain})
+      x_prime_A = sess.run(m.x_prime, {m.x: x_A, m.x_domain: x_A_domain})
+      x_prime_B = sess.run(m.x_prime, {m.x: x_B, m.x_domain: x_B_domain})
+      x_prime_A_to_B = sess.run(
+          m.x_prime_transfer, {
+              m.x_transfer: x_A,
+              m.x_transfer_encode_domain: x_A_domain,
+              m.x_transfer_decode_domain: x_B_domain,
+          })
+      x_prime_B_to_A = sess.run(
+          m.x_prime_transfer, {
+              m.x_transfer: x_B,
+              m.x_transfer_encode_domain: x_B_domain,
+              m.x_transfer_decode_domain: x_A_domain,
+          })
 
       this_iter_sample_dir = join(sample_dir, '%010d' % i)
       tf.gfile.MakeDirs(this_iter_sample_dir)
@@ -289,6 +455,10 @@ def main(unused_argv):
                                                    'x.png'))
       draw_plot([x_prime_A, x_prime_B], [attr_A, attr_B],
                 join(this_iter_sample_dir, 'x_prime.png'))
+      draw_plot([x_prime_A_to_B, x_prime_B], [attr_A, attr_B],
+                join(this_iter_sample_dir, 'x_A_to_B_and_x_B.png'))
+      draw_plot([x_prime_A, x_prime_B_to_A], [attr_A, attr_B],
+                join(this_iter_sample_dir, 'x_B_to_A_and_x_A.png'))
       draw_plot([z_A, z_B], [attr_A, attr_B], join(this_iter_sample_dir,
                                                    'z.png'))
 
