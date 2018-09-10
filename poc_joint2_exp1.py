@@ -334,6 +334,18 @@ def get_dirs(sig):
 
 
 def draw_plot(xs, attrs, fpath):
+  assert len(xs) == len(attrs)
+  assert len(xs) <= 2
+
+  marker_list = ['o', '^']
+  # see https://matplotlib.org/api/markers_api.html#module-matplotlib.markers
+
+  notes = []
+  last_pos = 0
+  for i, x in enumerate(xs):
+    notes.append((last_pos, last_pos + len(x), marker_list[i]))
+    last_pos += len(x)
+
   x = np.concatenate(xs)
   attr = np.concatenate(attrs)
   if x.shape[-1] > 2:
@@ -342,7 +354,18 @@ def draw_plot(xs, attrs, fpath):
   if x.shape[-1] == 1:
     x = np.stack([x, np.zeros_like(x)], axis=-1)
   fig, ax = plt.subplots()
-  ax.scatter(x=x[:, 0], y=x[:, 1], c=attr, cmap='RdYlGn', marker='.')
+  for note in notes:
+    start, end, marker = note
+    ax.scatter(
+        x=x[start:end, 0],
+        y=x[start:end, 1],
+        c=attr[start:end],
+        cmap='RdYlGn',
+        marker=marker,
+        norm=matplotlib.colors.Normalize(vmin=0., vmax=3.),
+        alpha=0.6,
+    )
+  # ax.scatter(x=x[:, 0], y=x[:, 1], c=attr, cmap='RdYlGn', marker='.')
   fig.savefig(fpath)
   plt.close(fig)
 
