@@ -21,6 +21,27 @@ import numpy as np
 import sonnet as snt
 import tensorflow as tf
 
+
+def on_the_fly_accuarcy(labels, logits):
+  """Compute accuarcy between label and logits.
+
+  Unlike tf.metrics.accuarcy, this computation is on-the-fly and
+    does not store local variables, nor separate updating and returning.
+  `labels` and `logits` are like that of `tf.losses.sparse_softmax_cross_entropy`.
+
+  Args:
+    labels: (tensor, int32) Labels of shape [d_0, d_1, ..., d_{r-1]}]
+    logits: (tensor, float32) Logits of shape [d_0, d_1, ..., d_{r-1], num_classes}]
+
+  Returns:
+    accuarcy: (scalar, float) Accuracy.
+  """
+  labels = tf.cast(labels, tf.int64)  # note that argmax returns `tf.int64`.
+  preds = tf.argmax(logits, -1)
+  eq = tf.cast(tf.equal(labels, preds), tf.float32)
+  return tf.reduce_mean(eq)
+
+
 #----- Sliced Wasserstein Distance taken from
 #----- https://arxiv.org/pdf/1804.01947.pdf
 
@@ -121,7 +142,6 @@ def sliced_wasserstein_tfgan(a, b, random_sampling_count,
     wdist = tf.reduce_mean(tf.abs(proj_a - proj_b))
     means.append(wdist)
   return tf.reduce_mean(means)
-
 
 
 def product_two_guassian_pdfs(mu_1, sigma_1, mu_2, sigma_2):

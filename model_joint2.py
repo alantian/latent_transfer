@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""oint2 model (=shared VAEs).
+"""joint2 model (=shared VAEs).
 
 This model model two latent space with the same shared latent space
 and the shared encoder/decoder (VAE).
@@ -114,6 +114,9 @@ class DecoderLatentFull(snt.AbstractModule):
     return mu
 
 
+ClassifierLatentFull = DecoderLatentFull  # It can also be a classifier.
+
+
 class VAE(snt.AbstractModule):
   """A shared VAE for modeling latent spaces of two domains."""
 
@@ -139,6 +142,11 @@ class VAE(snt.AbstractModule):
     else:
       input_ = (z,)
     return decoder(input_)
+
+  def classify(self, classifier, z):
+    """Classify `z` using `classifier`."""
+    input_ = (z,)
+    return classifier(input_)
 
   def _build(self, unused_input=None):  # pylint:disable=W0221
 
@@ -203,6 +211,20 @@ class VAE(snt.AbstractModule):
         random_sampling_count,
         random_projection_dim,
     )
+    # ---------------------------------------------------------------------
+    # ## Classifier on shared latent space (training)
+    # ---------------------------------------------------------------------
+    x_cls = tf.placeholder(tf.float32, shape=(None, n_latent))
+    x_cls_domain = tf.placeholder(tf.float32, shape=(None, 2))
+    labels_cls = tf.placeholder(tf.int32, shape=(None))
+    mu_cls, sigma_cls = self.encode(encoder, x_cls, x_cls_domain)
+    q_z_sample_cls = ds.Normal(loc=mu_cls, scale=sigma_cls).sample()
+    n_label = config['n_label']
+    Classifier = config['Classifier']
+    classifier = Classifier(name='classifier')
+    logits_cls = self.classify(classifier, q_z_sample_cls)
+    cls_loss = tf.losses.sparse_softmax_cross_entropy(labels_cls, logits_cls)
+    cls_accuarcy = nn.on_the_fly_accuarcy(labels_cls, logits_cls)
 
     # ---------------------------------------------------------------------
     #  Domain Transfer (inferring)
@@ -227,7 +249,9 @@ class VAE(snt.AbstractModule):
     vae_loss = mean_recons + scaled_prior_loss
     unsup_align_loss_beta = tf.constant(config['unsup_align_loss_beta'])
     scaled_unsup_align_loss = unsup_align_loss * unsup_align_loss_beta
-    full_loss = vae_loss + scaled_unsup_align_loss
+    cls_loss_beta = tf.constant(config['cls_loss_beta'])
+    scaled_cls_loss = cls_loss * cls_loss_beta
+    full_loss = vae_loss + scaled_unsup_align_loss + scaled_cls_loss
 
     # ---------------------------------------------------------------------
     # ## Training
@@ -253,5 +277,8 @@ class VAE(snt.AbstractModule):
         'm.scaled_prior_loss': m.scaled_prior_loss,
         'm.unsup_align_loss': m.unsup_align_loss,
         'm.scaled_unsup_align_loss': m.scaled_unsup_align_loss,
+        'm.cls_loss': m.cls_loss,
+        'm.scaled_cls_loss': m.scaled_cls_loss,
+        'm.cls_accuarcy': m.cls_accuarcy,
         'm.full_loss': m.full_loss,
     }
