@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from collections import namedtuple
 from functools import partial
 import importlib
 import os
@@ -32,6 +33,7 @@ from tqdm import tqdm
 from sklearn.manifold import TSNE
 
 import common
+import common_joint2
 import model_joint2
 
 ds = tf.contrib.distributions
@@ -103,15 +105,18 @@ tf.flags.DEFINE_boolean('use_domain', False, '')
 tf.flags.DEFINE_string('sig_extra', '', '')
 
 
-def get_dirs(sig):
-  local_base_path = join(common.get_default_scratch(), 'poc_joint2_exp1')
-  save_dir = join(local_base_path, 'save', sig)
-  os.system('rm -rf "%s"' % save_dir)
-  tf.gfile.MakeDirs(save_dir)
-  sample_dir = join(local_base_path, 'sample', sig)
-  os.system('rm -rf "%s"' % sample_dir)
-  tf.gfile.MakeDirs(sample_dir)
-  return save_dir, sample_dir
+def get_sig():
+  return 'nl{nl}_nls{nls}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(
+      nl=FLAGS.n_latent,
+      nls=FLAGS.n_latent_shared,
+      lr=FLAGS.lr,
+      plb=FLAGS.prior_loss_beta,
+      ualb=FLAGS.unsup_align_loss_beta,
+      clb=FLAGS.cls_loss_beta,
+      rsc=FLAGS.random_sampling_count,
+      bs=FLAGS.batch_size,
+      ud=FLAGS.use_domain,
+  ) + FLAGS.sig_extra
 
 
 PLOT_VMIN = 0.0
@@ -131,7 +136,7 @@ def draw_plot(xs, attrs, labels, fpath, plot_is_x):
   assert len(xs) == len(attrs)
   assert len(xs) <= 2
 
-  marker_list = ['^', 'v', '+', 'x']
+  marker_list = ['.', 'x']  # ['^', 'v', '+', 'x']
   # see https://matplotlib.org/api/markers_api.html#module-matplotlib.markers
 
   #notes = []
@@ -147,7 +152,8 @@ def draw_plot(xs, attrs, labels, fpath, plot_is_x):
     for target_label in [0, 1]:
       index = [i for i in range(len(label)) if label[i] == target_label]
       index = np.array(index, dtype=np.int32)
-      new_notes.append((index + last_pos, marker_list[marker_i]))
+      new_notes.append((index + last_pos,
+                        marker_list[marker_i % len(marker_list)]))
       marker_i += 1
     last_pos += len(x)
 
@@ -184,18 +190,9 @@ def draw_plot(xs, attrs, labels, fpath, plot_is_x):
 def main(unused_argv):
   del unused_argv
 
-  sig = 'nl{nl}_nls{nls}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(
-      nl=FLAGS.n_latent,
-      nls=FLAGS.n_latent_shared,
-      lr=FLAGS.lr,
-      plb=FLAGS.prior_loss_beta,
-      ualb=FLAGS.unsup_align_loss_beta,
-      clb=FLAGS.cls_loss_beta,
-      rsc=FLAGS.random_sampling_count,
-      bs=FLAGS.batch_size,
-      ud=FLAGS.use_domain,
-  ) + FLAGS.sig_extra
-  save_dir, sample_dir = get_dirs(sig)
+  sig = get_sig()
+  dirs = common_joint2.get_dirs('poc_joint2_exp1', sig)
+  save_dir, sample_dir = dirs.save_dir, dirs.sample_dir
 
   # Plot true distribution
   x_A, attr_A, label_A = SyntheticData.sample_A(100)
@@ -206,18 +203,18 @@ def main(unused_argv):
       plot_is_x=True)
 
   # make model
-  vae_layers = [8, 8, 8]
+  layers = [8, 8, 8]
   Encoder = partial(
       model_joint2.EncoderLatentFull,
       input_size=FLAGS.n_latent,
       output_size=FLAGS.n_latent_shared,
-      layers=vae_layers,
+      layers=layers,
   )
   Decoder = partial(
       model_joint2.DecoderLatentFull,
       input_size=FLAGS.n_latent_shared,
       output_size=FLAGS.n_latent,
-      layers=vae_layers,
+      layers=layers,
   )
   cls_layers = [8]
   Classifier = partial(
@@ -324,7 +321,9 @@ def main(unused_argv):
           plot_is_x=False)
 
 
+# pylint:disable=all
 import pdb, traceback, sys, code
+
 if __name__ == '__main__':
   try:
     tf.app.run(main)

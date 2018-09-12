@@ -282,3 +282,9 @@ class VAE(snt.AbstractModule):
         'm.cls_accuarcy': m.cls_accuarcy,
         'm.full_loss': m.full_loss,
     }
+
+  def get_scalar_summaries(self):
+    return tf.summary.merge([
+        tf.summary.scalar(key, value)
+        for key, value in self.get_summary_kv_dict().items()
+    ])
