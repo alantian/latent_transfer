@@ -170,7 +170,7 @@ class VAE(snt.AbstractModule):
     decoder = Decoder(name='decoder')
 
     # ---------------------------------------------------------------------
-    # ## One side VAE (training)
+    # ## One side VAE (training and infer)
     # ---------------------------------------------------------------------
     # Reconstruction
     x = tf.placeholder(tf.float32, shape=(None, n_latent))
@@ -227,6 +227,15 @@ class VAE(snt.AbstractModule):
     cls_accuarcy = nn.on_the_fly_accuarcy(labels_cls, logits_cls)
 
     # ---------------------------------------------------------------------
+    # Deconde (inferring)
+    # ---------------------------------------------------------------------
+    q_z_sample_decode = tf.placeholder(
+        tf.float32, shape=(None, n_latent_shared))
+    q_z_sample_domain_decode = tf.placeholder(tf.float32, shape=(None, 2))
+    x_prime_decode = self.decode(decoder, q_z_sample_decode,
+                                 q_z_sample_domain_decode)
+
+    # ---------------------------------------------------------------------
     #  Domain Transfer (inferring)
     # ---------------------------------------------------------------------
     x_transfer = tf.placeholder(tf.float32, shape=(None, n_latent))
@@ -244,13 +253,18 @@ class VAE(snt.AbstractModule):
     # ## All looses
     # ---------------------------------------------------------------------
 
-    prior_loss_beta = tf.constant(config['prior_loss_beta'])
-    scaled_prior_loss = prior_loss * prior_loss_beta
+    # A part of the loss could be optionally turned off by setting its coreesponding beta to 0.0.
+    # However, it could shift to NaN in this case (e.g. prior loss which is KL when sigma is very close to 0.0),
+    # We need to cut it off from the computation graph, since 0.0 * NaN = NaN,
+    # to prevent NaN from propagating in back-progapation.
+
+    prior_loss_beta = config['prior_loss_beta']
+    scaled_prior_loss = prior_loss * prior_loss_beta if prior_loss_beta != 0.0 else 0.0
     vae_loss = mean_recons + scaled_prior_loss
-    unsup_align_loss_beta = tf.constant(config['unsup_align_loss_beta'])
-    scaled_unsup_align_loss = unsup_align_loss * unsup_align_loss_beta
-    cls_loss_beta = tf.constant(config['cls_loss_beta'])
-    scaled_cls_loss = cls_loss * cls_loss_beta
+    unsup_align_loss_beta = config['unsup_align_loss_beta']
+    scaled_unsup_align_loss = unsup_align_loss * unsup_align_loss_beta if unsup_align_loss_beta != 0.0 else 0.0
+    cls_loss_beta = config['cls_loss_beta']
+    scaled_cls_loss = cls_loss * cls_loss_beta if cls_loss_beta != 0.0 else 0.0
     full_loss = vae_loss + scaled_unsup_align_loss + scaled_cls_loss
 
     # ---------------------------------------------------------------------

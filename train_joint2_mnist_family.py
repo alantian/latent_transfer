@@ -53,7 +53,7 @@ tf.flags.DEFINE_integer('n_latent_shared', 2, '')
 tf.flags.DEFINE_integer('n_label', 10, '')
 tf.flags.DEFINE_integer('n_sup', -1, '')
 tf.flags.DEFINE_float('lr', 0.001, '')
-tf.flags.DEFINE_float('prior_loss_beta', 0.025, '')
+tf.flags.DEFINE_float('prior_loss_beta', 0.0, '')  # good value was 0.025
 tf.flags.DEFINE_float('unsup_align_loss_beta', 0.0, '')
 tf.flags.DEFINE_float('cls_loss_beta', 0.0, '')
 tf.flags.DEFINE_integer('random_sampling_count', 128, '')
@@ -62,6 +62,9 @@ tf.flags.DEFINE_boolean('use_domain', True, '')
 tf.flags.DEFINE_string('sig_extra', '', '')
 
 tf.flags.DEFINE_integer('n_iters', 10000, '')
+tf.flags.DEFINE_integer('n_iters_per_eval', 100, '')
+tf.flags.DEFINE_integer('n_iters_per_save', int(1e10),
+                        '')  # default = effectively no saving.
 
 
 def get_sig():
@@ -255,7 +258,7 @@ class ModelHelper(object):
           not, `x` is converted to dataspace before saving
     """
     if not x_is_real_x:
-      np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
+      np.savetxt(join(save_dir, '%s.array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
     real_x = common.post_proc(real_x, self.config)
     batched_real_x = common.batch_image(real_x)
@@ -307,6 +310,166 @@ class OneSideHelper(object):
     m_helper.restore_best('vae_saver', dataset.save_path, 'vae_best_%s.ckpt')
     m_classifier_helper.restore_best('classifier_saver', dataset.save_path,
                                      'classifier_best_%s.ckpt')
+
+  def decode_and_classify(self, x):
+    real_x = self.m_helper.decode(x)
+    pred = self.m_classifier_helper.classify(real_x)
+    return pred
+
+  def save_data(self, *args, **kwargs):
+    self.m_helper.save_data(*args, **kwargs)
+
+
+class ManualSummaryHelper(object):
+  """A helper making manual TF summary easier."""
+
+  def __init__(self):
+    self._key_to_ph_summary_tuple = {}
+
+  def get_summary(self, sess, key, value):
+    """Get TF (scalar) summary.
+
+    Args:
+      sess: A TF Session to be used in making summary.
+      key: A string indicating the name of summary.
+      value: A string indicating the value of summary.
+
+    Returns:
+      A TF summary.
+    """
+    with sess.graph.as_default():
+      self._add_key_if_not_exists(key)
+    placeholder, summary = self._key_to_ph_summary_tuple[key]
+    return sess.run(summary, {placeholder: value})
+
+  def _add_key_if_not_exists(self, key):
+    """Add related TF heads for a key if it is not used before."""
+    if key in self._key_to_ph_summary_tuple:
+      return
+    placeholder = tf.placeholder(tf.float32, shape=(), name=key + '_ph')
+    summary = tf.summary.scalar(key, placeholder)
+    self._key_to_ph_summary_tuple[key] = (placeholder, summary)
+
+
+class JointVAEHelper(object):
+  """The helper that managers the joint VAE model in the latent space.
+
+  """
+
+  def __init__(self, config, save_dir):
+    self.config = config
+    batch_size = config['batch_size']
+
+    graph = self.graph = tf.Graph()
+    with graph.as_default():
+      # these variables need to be in thes graph.
+      sess = self.sess = tf.Session(graph=graph)
+      m = self.m = model_joint2.VAE(config, name='vae')
+      m()
+      sess.run(tf.global_variables_initializer())
+      self.scalar_summaries = m.get_scalar_summaries()
+
+    self.ckpt_dir = save_dir + '/ckpt'
+    self.train_writer = tf.summary.FileWriter(save_dir + '/transfer_train',
+                                              sess.graph)
+    self.eval_writer = tf.summary.FileWriter(save_dir + '/transfer_eval',
+                                             sess.graph)
+
+    self.domain_A = common_joint2.get_domain_A(batch_size)
+    self.domain_B = common_joint2.get_domain_B(batch_size)
+
+    self.manual_summary_helper = ManualSummaryHelper()
+
+  def train_one_batch(self, i, x_A, x_B, x_sup_A, x_sup_B, label_sup_A,
+                      label_sup_B):
+    sess = self.sess
+    m = self.m
+    scalar_summaries = self.scalar_summaries
+    domain_A, domain_B = self.domain_A, self.domain_B
+    train_writer = self.train_writer
+
+    res = sess.run(
+        [m.train_full, scalar_summaries], {
+            m.x: np.concatenate([x_A, x_B]),
+            m.x_domain: np.concatenate([domain_A, domain_B]),
+            m.x_A: x_A,
+            m.x_B: x_B,
+            m.x_A_domain: domain_A,
+            m.x_B_domain: domain_B,
+            m.x_cls: np.concatenate([x_sup_A, x_sup_B]),
+            m.x_cls_domain: np.concatenate([domain_A, domain_B]),
+            m.labels_cls: np.concatenate([label_sup_A, label_sup_B]),
+        })
+    train_writer.add_summary(res[-1], i)
+
+  def save(self, i):
+    ckpt_dir = self.ckpt_dir
+    sess = self.sess
+    m = self.m
+    save_name = join(ckpt_dir, 'transfer_%d.ckpt' % i)
+    m.vae_saver.save(sess, save_name)
+    with tf.gfile.Open(join(ckpt_dir, 'ckpt_iters.txt'), 'w') as f:
+      f.write('%d' % i)
+
+  def eval_summary(self, key, value, i):
+    manual_summary_helper = self.manual_summary_helper
+    sess = self.sess
+    eval_writer = self.eval_writer
+
+    summary = manual_summary_helper.get_summary(sess, key, value)
+    eval_writer.add_summary(summary, i)
+
+  def sample_prior(self, sample_size):
+    n_latent_shared = self.config['n_latent_shared']
+    sess = self.sess
+    m = self.m
+    domain_A = common_joint2.get_domain_A(sample_size)
+    domain_B = common_joint2.get_domain_B(sample_size)
+
+    z_hat = np.random.randn(sample_size, n_latent_shared)
+    x_A = sess.run(m.x_prime_decode, {
+        m.q_z_sample_decode: z_hat,
+        m.q_z_sample_domain_decode: domain_A
+    })
+    x_B = sess.run(m.x_prime_decode, {
+        m.q_z_sample_decode: z_hat,
+        m.q_z_sample_domain_decode: domain_B
+    })
+    return x_A, x_B
+
+  def get_x_prime(self, x, encode_domain_sig, decode_domain_sig):
+    assert encode_domain_sig in ('A', 'B')
+    assert decode_domain_sig in ('A', 'B')
+
+    sess = self.sess
+    m = self.m
+
+    domain_A = common_joint2.get_domain_A(x.shape[0])
+    domain_B = common_joint2.get_domain_B(x.shape[0])
+
+    encode_domain = domain_A if encode_domain_sig == 'A' else domain_B
+    decode_domain = domain_A if decode_domain_sig == 'A' else domain_B
+
+    return sess.run(
+        m.x_prime_transfer,
+        {
+            m.x_transfer: x,
+            m.x_transfer_encode_domain: encode_domain,
+            m.x_transfer_decode_domain: decode_domain,
+        },
+    )
+
+  def get_x_prime_A(self, x_A):
+    return self.get_x_prime(x_A, 'A', 'A')
+
+  def get_x_prime_B(self, x_B):
+    return self.get_x_prime(x_B, 'B', 'B')
+
+  def get_x_prime_B_from_x_A(self, x_A):
+    return self.get_x_prime(x_A, 'A', 'B')
+
+  def get_x_prime_A_from_x_B(self, x_B):
+    return self.get_x_prime(x_B, 'B', 'A')
 
 
 class GuassianDataHelper(object):
@@ -452,12 +615,9 @@ def main(unused_argv):
   }
 
   # Build the joint model.
-  tf.reset_default_graph()
-  sess = tf.Session()
-  m = model_joint2.VAE(vae_config, name='vae')
-  m()
+  joint_vae_helper = JointVAEHelper(vae_config, save_dir)
 
-  # Load model's architecture (= build)
+  # Build model's architecture
   one_side_helper_A = OneSideHelper(FLAGS.config_A, FLAGS.exp_uid_A,
                                     FLAGS.config_classifier_A,
                                     FLAGS.exp_uid_classifier_A)
@@ -465,25 +625,24 @@ def main(unused_argv):
                                     FLAGS.config_classifier_B,
                                     FLAGS.exp_uid_classifier_B)
 
-  train_writer = tf.summary.FileWriter(save_dir + '/transfer_train', sess.graph)
-  scalar_summaries = m.get_scalar_summaries()
-
   # Initialize and restore
-  sess.run(tf.global_variables_initializer())
 
   one_side_helper_A.restore(dataset_A)
   one_side_helper_B.restore(dataset_B)
 
-  # Miscs from config
+  # Prepare data iterators.
   batch_size = vae_config['batch_size']
   n_sup = vae_config['n_sup']
+  eval_batch_size = 1000  # bettert be an multiple of 10.
 
   unsup_iterator_A = DataIterator(dataset_A, max_n=-1, batch_size=batch_size)
   unsup_iterator_B = DataIterator(dataset_B, max_n=-1, batch_size=batch_size)
   sup_iterator_A = DataIterator(dataset_A, max_n=n_sup, batch_size=batch_size)
   sup_iterator_B = DataIterator(dataset_B, max_n=n_sup, batch_size=batch_size)
-  domain_A = common_joint2.get_domain_A(batch_size)
-  domain_B = common_joint2.get_domain_B(batch_size)
+  eval_iterator_A = DataIterator(
+      dataset_A, max_n=-1, batch_size=eval_batch_size)
+  eval_iterator_B = DataIterator(
+      dataset_B, max_n=-1, batch_size=eval_batch_size)
 
   # Training loop
   n_iters = FLAGS.n_iters
@@ -493,19 +652,77 @@ def main(unused_argv):
     x_sup_A, label_sup_A = next(sup_iterator_A)
     x_sup_B, label_sup_B = next(sup_iterator_B)
 
-    res = sess.run(
-        [m.train_full, scalar_summaries], {
-            m.x: np.concatenate([x_A, x_B]),
-            m.x_domain: np.concatenate([domain_A, domain_B]),
-            m.x_A: x_A,
-            m.x_B: x_B,
-            m.x_A_domain: domain_A,
-            m.x_B_domain: domain_B,
-            m.x_cls: np.concatenate([x_sup_A, x_sup_B]),
-            m.x_cls_domain: np.concatenate([domain_A, domain_B]),
-            m.labels_cls: np.concatenate([label_sup_A, label_sup_B]),
-        })
-    train_writer.add_summary(res[-1], i)
+    joint_vae_helper.train_one_batch(i, x_A, x_B, x_sup_A, x_sup_B, label_sup_A,
+                                     label_sup_B)
+
+    if i % FLAGS.n_iters_per_save == 0:
+      # Save the model if instructed
+      joint_vae_helper.save(i)
+
+    # Evaluate if instructed
+    if i % FLAGS.n_iters_per_eval == 0:
+      eval_x_A, _ = next(eval_iterator_A)
+      eval_x_B, _ = next(eval_iterator_B)
+
+      eval_dir = join(sample_dir, 'transfer_eval_sample', '%010d' % i)
+      tf.gfile.MakeDirs(eval_dir)
+
+      def accuarcy(x_1, x_2, one_side_helper_1, one_side_helper_2):
+        pred_1 = one_side_helper_1.decode_and_classify(x_1)
+        pred_2 = one_side_helper_2.decode_and_classify(x_2)
+        return np.mean(np.equal(pred_1, pred_2).astype('f'))
+
+      x_A = eval_x_A
+      x_prime_A = joint_vae_helper.get_x_prime_A(x_A)
+      acc = accuarcy(x_A, x_prime_A, one_side_helper_A, one_side_helper_A)
+      joint_vae_helper.eval_summary('accuarcy_recons_A', acc, i)
+      one_side_helper_A.save_data(x_A, 'recons_x_A', eval_dir)
+      one_side_helper_A.save_data(x_prime_A, 'recons_x_prime_A', eval_dir)
+
+      x_B = eval_x_B
+      x_prime_B = joint_vae_helper.get_x_prime_B(x_B)
+      acc = accuarcy(x_B, x_prime_B, one_side_helper_B, one_side_helper_B)
+      joint_vae_helper.eval_summary('accuarcy_recons_B', acc, i)
+      one_side_helper_B.save_data(x_B, 'recons_x_B', eval_dir)
+      one_side_helper_B.save_data(x_prime_B, 'recons_x_prime_B', eval_dir)
+
+      x_A, x_B = joint_vae_helper.sample_prior(eval_batch_size)
+      acc = accuarcy(x_A, x_prime_B, one_side_helper_A, one_side_helper_B)
+      joint_vae_helper.eval_summary('accuracy_sample_joint', acc, i)
+      x_prime_A = joint_vae_helper.get_x_prime_A(x_A)
+      x_prime_B = joint_vae_helper.get_x_prime_B(x_B)
+      one_side_helper_A.save_data(x_prime_A, 'sample_joint_x_A', eval_dir)
+      one_side_helper_B.save_data(x_prime_B, 'sample_joint_x_B', eval_dir)
+
+      x_A = eval_x_A
+      x_prime_B = joint_vae_helper.get_x_prime_B_from_x_A(x_A)
+      acc = accuarcy(x_A, x_prime_B, one_side_helper_A, one_side_helper_B)
+      joint_vae_helper.eval_summary('accuarcy_transfer_A_to_B', acc, i)
+      one_side_helper_A.save_data(x_A, 'transfer_A_to_B_x_A', eval_dir)
+      one_side_helper_B.save_data(x_prime_B, 'transfer_A_to_B_x_B', eval_dir)
+
+      x_B = eval_x_B
+      x_prime_A = joint_vae_helper.get_x_prime_A_from_x_B(x_B)
+      acc = accuarcy(x_B, x_prime_A, one_side_helper_B, one_side_helper_A)
+      joint_vae_helper.eval_summary('accuarcy_transfer_B_to_A', acc, i)
+      one_side_helper_B.save_data(x_B, 'transfer_B_to_A_x_B', eval_dir)
+      one_side_helper_A.save_data(x_prime_A, 'transfer_B_to_A_x_A', eval_dir)
+
+      x_A, _ = joint_vae_helper.sample_prior(eval_batch_size)
+      x_prime_B = joint_vae_helper.get_x_prime_B_from_x_A(x_A)
+      acc = accuarcy(x_A, x_B, one_side_helper_A, one_side_helper_B)
+      joint_vae_helper.eval_summary('accuarcy_sample_transfer_A_to_B', acc, i)
+      one_side_helper_A.save_data(x_A, 'sample_transfer_A_to_B_x_A', eval_dir)
+      one_side_helper_B.save_data(x_prime_B, 'sample_transfer_A_to_B_x_B',
+                                  eval_dir)
+
+      _, x_B = joint_vae_helper.sample_prior(eval_batch_size)
+      x_prime_A = joint_vae_helper.get_x_prime_A_from_x_B(x_B)
+      acc = accuarcy(x_B, x_prime_A, one_side_helper_B, one_side_helper_A)
+      joint_vae_helper.eval_summary('accuarcy_sample_transfer_B_to_A', acc, i)
+      one_side_helper_B.save_data(x_B, 'sample_transfer_B_to_A_x_B', eval_dir)
+      one_side_helper_A.save_data(x_prime_A, 'sample_transfer_B_to_A_x_A',
+                                  eval_dir)
 
 
 import pdb, traceback, sys, code  # pylint:disable=W0611,C0413,C0411,C0410
