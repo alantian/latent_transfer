@@ -8,7 +8,7 @@ run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --config_A "mnist_0_nlatent100" --config_B "mnist_0_nlatent100" \
   --config_classifier_A "mnist_classifier_0" --config_classifier_B "mnist_classifier_0" \
   --n_latent 100 --n_latent_shared 2 \
-  --sig_extra "_run0_dev3" ;
+  --sig_extra "_run0_dev4" ;
 
   # ===
 

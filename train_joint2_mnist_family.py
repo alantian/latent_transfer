@@ -21,10 +21,12 @@ from __future__ import print_function
 
 from collections import namedtuple
 from functools import partial
+import itertools
 from os.path import join
 
 import numpy as np
-
+from scipy.stats import entropy
+from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 from tqdm import tqdm
 
@@ -351,6 +353,60 @@ class ManualSummaryHelper(object):
     self._key_to_ph_summary_tuple[key] = (placeholder, summary)
 
 
+# http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+# With modification
+def plot_confusion_matrix(cm,
+                          classes,
+                          fpath,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=None):
+  """
+  This function prints and plots the confusion matrix.
+  Normalization can be applied by setting `normalize=True`.
+  """
+
+  import matplotlib
+  # avoid tkinter. This should happen before `import matplotlib.pyplot`.
+  matplotlib.use('agg')
+  import matplotlib.pyplot as plt
+
+  plt.figure()
+  cmap = cmap or plt.cm.Blues
+  if normalize:
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    # print("Normalized confusion matrix")
+  else:
+    # print('Confusion matrix, without normalization')
+    pass
+
+  # print(cm)
+
+  plt.imshow(cm, interpolation='nearest', cmap=cmap)
+  plt.title(title)
+  plt.colorbar()
+  tick_marks = np.arange(len(classes))
+  plt.xticks(tick_marks, classes, rotation=45)
+  plt.yticks(tick_marks, classes)
+
+  fmt = '.2f' if normalize else 'd'
+  thresh = cm.max() / 2.
+  for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    plt.text(
+        j,
+        i,
+        format(cm[i, j], fmt),
+        horizontalalignment="center",
+        color="white" if cm[i, j] > thresh else "black")
+
+  plt.tight_layout()
+  plt.ylabel('True label')
+  plt.xlabel('Predicted label')
+
+  plt.savefig(fpath)
+  plt.close()
+
+
 class JointVAEHelper(object):
   """The helper that managers the joint VAE model in the latent space.
 
@@ -470,6 +526,57 @@ class JointVAEHelper(object):
 
   def get_x_prime_A_from_x_B(self, x_B):
     return self.get_x_prime(x_B, 'B', 'A')
+
+  def compare(self,
+              x_1,
+              x_2,
+              one_side_helper_1,
+              one_side_helper_2,
+              eval_dir,
+              i,
+              sig,
+              n_label=10):
+    """Get stats of prediciton. We assume x_1 is true and x1 is pred if needed."""
+
+    def get_accuarcy(pred_1, pred_2):
+      return np.mean(np.equal(pred_1, pred_2).astype('f'))
+
+    def normalize(v):
+      return v / max(1e-10, np.absolute(v).sum())
+
+    labels = list(range(n_label))
+    pred_1 = one_side_helper_1.decode_and_classify(x_1)
+    pred_2 = one_side_helper_2.decode_and_classify(x_2)
+
+    accuarcy_ = get_accuarcy(pred_1, pred_2)
+
+    confusion_matrix_ = confusion_matrix(
+        y_true=pred_1,
+        y_pred=pred_2,
+        labels=labels,
+    )
+
+    entropy_ = np.array(
+        [entropy(normalize(row)) for row in confusion_matrix_]).sum()
+
+    self.eval_summary('accuracy_' + sig, accuarcy_, i)
+    self.eval_summary('entropy_' + sig, entropy_, i)
+
+    np.savetxt(
+        join(eval_dir, 'confusion_matrix_' + sig + '.txt'), confusion_matrix_)
+
+    plot_confusion_matrix(
+        confusion_matrix_,
+        labels,
+        join(eval_dir, 'confusion_matrix_' + sig + '.png'),
+    )
+
+    plot_confusion_matrix(
+        confusion_matrix_,
+        labels,
+        join(eval_dir, 'confusion_matrix_normalized_' + sig + '.png'),
+        normalize=True,
+    )
 
 
 class GuassianDataHelper(object):
@@ -615,20 +722,20 @@ def main(unused_argv):
   }
 
   # Build the joint model.
-  joint_vae_helper = JointVAEHelper(vae_config, save_dir)
+  helper_joint = JointVAEHelper(vae_config, save_dir)
 
   # Build model's architecture
-  one_side_helper_A = OneSideHelper(FLAGS.config_A, FLAGS.exp_uid_A,
-                                    FLAGS.config_classifier_A,
-                                    FLAGS.exp_uid_classifier_A)
-  one_side_helper_B = OneSideHelper(FLAGS.config_B, FLAGS.exp_uid_B,
-                                    FLAGS.config_classifier_B,
-                                    FLAGS.exp_uid_classifier_B)
+  helper_A = OneSideHelper(FLAGS.config_A, FLAGS.exp_uid_A,
+                           FLAGS.config_classifier_A,
+                           FLAGS.exp_uid_classifier_A)
+  helper_B = OneSideHelper(FLAGS.config_B, FLAGS.exp_uid_B,
+                           FLAGS.config_classifier_B,
+                           FLAGS.exp_uid_classifier_B)
 
   # Initialize and restore
 
-  one_side_helper_A.restore(dataset_A)
-  one_side_helper_B.restore(dataset_B)
+  helper_A.restore(dataset_A)
+  helper_B.restore(dataset_B)
 
   # Prepare data iterators.
   batch_size = vae_config['batch_size']
@@ -652,12 +759,12 @@ def main(unused_argv):
     x_sup_A, label_sup_A = next(sup_iterator_A)
     x_sup_B, label_sup_B = next(sup_iterator_B)
 
-    joint_vae_helper.train_one_batch(i, x_A, x_B, x_sup_A, x_sup_B, label_sup_A,
-                                     label_sup_B)
+    helper_joint.train_one_batch(i, x_A, x_B, x_sup_A, x_sup_B, label_sup_A,
+                                 label_sup_B)
 
     if i % FLAGS.n_iters_per_save == 0:
       # Save the model if instructed
-      joint_vae_helper.save(i)
+      helper_joint.save(i)
 
     # Evaluate if instructed
     if i % FLAGS.n_iters_per_eval == 0:
@@ -667,62 +774,53 @@ def main(unused_argv):
       eval_dir = join(sample_dir, 'transfer_eval_sample', '%010d' % i)
       tf.gfile.MakeDirs(eval_dir)
 
-      def accuarcy(x_1, x_2, one_side_helper_1, one_side_helper_2):
-        pred_1 = one_side_helper_1.decode_and_classify(x_1)
-        pred_2 = one_side_helper_2.decode_and_classify(x_2)
-        return np.mean(np.equal(pred_1, pred_2).astype('f'))
-
+      sig = 'recons_A'
       x_A = eval_x_A
-      x_prime_A = joint_vae_helper.get_x_prime_A(x_A)
-      acc = accuarcy(x_A, x_prime_A, one_side_helper_A, one_side_helper_A)
-      joint_vae_helper.eval_summary('accuarcy_recons_A', acc, i)
-      one_side_helper_A.save_data(x_A, 'recons_x_A', eval_dir)
-      one_side_helper_A.save_data(x_prime_A, 'recons_x_prime_A', eval_dir)
+      x_prime_A = helper_joint.get_x_prime_A(x_A)
+      helper_joint.compare(x_A, x_prime_A, helper_A, helper_A, eval_dir, i, sig)
+      helper_A.save_data(x_A, sig + '_x_A', eval_dir)
+      helper_A.save_data(x_prime_A, sig + '_x_prime_A', eval_dir)
 
+      sig = 'recons_B'
       x_B = eval_x_B
-      x_prime_B = joint_vae_helper.get_x_prime_B(x_B)
-      acc = accuarcy(x_B, x_prime_B, one_side_helper_B, one_side_helper_B)
-      joint_vae_helper.eval_summary('accuarcy_recons_B', acc, i)
-      one_side_helper_B.save_data(x_B, 'recons_x_B', eval_dir)
-      one_side_helper_B.save_data(x_prime_B, 'recons_x_prime_B', eval_dir)
+      x_prime_B = helper_joint.get_x_prime_B(x_B)
+      helper_joint.compare(x_B, x_prime_B, helper_B, helper_B, eval_dir, i, sig)
+      helper_B.save_data(x_B, sig + '_x_B', eval_dir)
+      helper_B.save_data(x_prime_B, sig + '_x_prime_B', eval_dir)
 
-      x_A, x_B = joint_vae_helper.sample_prior(eval_batch_size)
-      acc = accuarcy(x_A, x_prime_B, one_side_helper_A, one_side_helper_B)
-      joint_vae_helper.eval_summary('accuracy_sample_joint', acc, i)
-      x_prime_A = joint_vae_helper.get_x_prime_A(x_A)
-      x_prime_B = joint_vae_helper.get_x_prime_B(x_B)
-      one_side_helper_A.save_data(x_prime_A, 'sample_joint_x_A', eval_dir)
-      one_side_helper_B.save_data(x_prime_B, 'sample_joint_x_B', eval_dir)
+      sig = 'sample_joint'
+      x_A, x_B = helper_joint.sample_prior(eval_batch_size)
+      helper_joint.compare(x_A, x_B, helper_A, helper_B, eval_dir, i, sig)
+      helper_A.save_data(x_A, sig + '_x_A', eval_dir)
+      helper_B.save_data(x_B, sig + '_x_B', eval_dir)
 
+      sig = 'transfer_A_to_B'
       x_A = eval_x_A
-      x_prime_B = joint_vae_helper.get_x_prime_B_from_x_A(x_A)
-      acc = accuarcy(x_A, x_prime_B, one_side_helper_A, one_side_helper_B)
-      joint_vae_helper.eval_summary('accuarcy_transfer_A_to_B', acc, i)
-      one_side_helper_A.save_data(x_A, 'transfer_A_to_B_x_A', eval_dir)
-      one_side_helper_B.save_data(x_prime_B, 'transfer_A_to_B_x_B', eval_dir)
+      x_prime_B = helper_joint.get_x_prime_B_from_x_A(x_A)
+      helper_joint.compare(x_A, x_prime_B, helper_A, helper_B, eval_dir, i, sig)
+      helper_A.save_data(x_A, sig + '_x_A', eval_dir)
+      helper_B.save_data(x_prime_B, sig + '_x_prime_B', eval_dir)
 
+      sig = 'transfer_B_to_A'
       x_B = eval_x_B
-      x_prime_A = joint_vae_helper.get_x_prime_A_from_x_B(x_B)
-      acc = accuarcy(x_B, x_prime_A, one_side_helper_B, one_side_helper_A)
-      joint_vae_helper.eval_summary('accuarcy_transfer_B_to_A', acc, i)
-      one_side_helper_B.save_data(x_B, 'transfer_B_to_A_x_B', eval_dir)
-      one_side_helper_A.save_data(x_prime_A, 'transfer_B_to_A_x_A', eval_dir)
+      x_prime_A = helper_joint.get_x_prime_A_from_x_B(x_B)
+      helper_joint.compare(x_B, x_prime_A, helper_B, helper_A, eval_dir, i, sig)
+      helper_B.save_data(x_B, sig + '_x_B', eval_dir)
+      helper_A.save_data(x_prime_A, sig + '_x_prime_A', eval_dir)
 
-      x_A, _ = joint_vae_helper.sample_prior(eval_batch_size)
-      x_prime_B = joint_vae_helper.get_x_prime_B_from_x_A(x_A)
-      acc = accuarcy(x_A, x_B, one_side_helper_A, one_side_helper_B)
-      joint_vae_helper.eval_summary('accuarcy_sample_transfer_A_to_B', acc, i)
-      one_side_helper_A.save_data(x_A, 'sample_transfer_A_to_B_x_A', eval_dir)
-      one_side_helper_B.save_data(x_prime_B, 'sample_transfer_A_to_B_x_B',
-                                  eval_dir)
+      sig = 'sample_transfer_A_to_B'
+      x_A, _ = helper_joint.sample_prior(eval_batch_size)
+      x_prime_B = helper_joint.get_x_prime_B_from_x_A(x_A)
+      helper_joint.compare(x_A, x_B, helper_A, helper_B, eval_dir, i, sig)
+      helper_A.save_data(x_A, sig + '_x_A', eval_dir)
+      helper_B.save_data(x_prime_B, sig + '_x_prime_B', eval_dir)
 
-      _, x_B = joint_vae_helper.sample_prior(eval_batch_size)
-      x_prime_A = joint_vae_helper.get_x_prime_A_from_x_B(x_B)
-      acc = accuarcy(x_B, x_prime_A, one_side_helper_B, one_side_helper_A)
-      joint_vae_helper.eval_summary('accuarcy_sample_transfer_B_to_A', acc, i)
-      one_side_helper_B.save_data(x_B, 'sample_transfer_B_to_A_x_B', eval_dir)
-      one_side_helper_A.save_data(x_prime_A, 'sample_transfer_B_to_A_x_A',
-                                  eval_dir)
+      sig = 'sample_transfer_B_to_A'
+      _, x_B = helper_joint.sample_prior(eval_batch_size)
+      x_prime_A = helper_joint.get_x_prime_A_from_x_B(x_B)
+      helper_joint.compare(x_B, x_prime_A, helper_B, helper_A, eval_dir, i, sig)
+      helper_B.save_data(x_B, sig + '_x_B', eval_dir)
+      helper_A.save_data(x_prime_A, sig + '_x_prime_A', eval_dir)
 
 
 import pdb, traceback, sys, code  # pylint:disable=W0611,C0413,C0411,C0410
