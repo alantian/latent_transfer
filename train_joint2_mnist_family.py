@@ -63,7 +63,7 @@ tf.flags.DEFINE_integer('batch_size', 512, '')
 tf.flags.DEFINE_boolean('use_domain', True, '')
 tf.flags.DEFINE_string('sig_extra', '', '')
 
-tf.flags.DEFINE_integer('n_iters', 10000, '')
+tf.flags.DEFINE_integer('n_iters', 20000, '')
 tf.flags.DEFINE_integer('n_iters_per_eval', 100, '')
 tf.flags.DEFINE_integer('n_iters_per_save', int(1e10),
                         '')  # default = effectively no saving.
@@ -372,17 +372,16 @@ def plot_confusion_matrix(cm,
   import matplotlib.pyplot as plt
 
   plt.figure()
+  plt.tight_layout()
+
   cmap = cmap or plt.cm.Blues
   if normalize:
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    # print("Normalized confusion matrix")
-  else:
-    # print('Confusion matrix, without normalization')
-    pass
 
-  # print(cm)
+  vmin = 0.0
+  vmax = np.max(cm.sum(axis=1))
 
-  plt.imshow(cm, interpolation='nearest', cmap=cmap)
+  plt.imshow(cm, interpolation='nearest', cmap=cmap, vmin=vmin,vmax=vmax)
   plt.title(title)
   plt.colorbar()
   tick_marks = np.arange(len(classes))
@@ -400,8 +399,8 @@ def plot_confusion_matrix(cm,
         color="white" if cm[i, j] > thresh else "black")
 
   plt.tight_layout()
-  plt.ylabel('True label')
-  plt.xlabel('Predicted label')
+  plt.ylabel('Source label')
+  plt.xlabel('Target label')
 
   plt.savefig(fpath)
   plt.close()
@@ -428,8 +427,7 @@ class JointVAEHelper(object):
     self.ckpt_dir = save_dir + '/ckpt'
     self.train_writer = tf.summary.FileWriter(save_dir + '/transfer_train',
                                               sess.graph)
-    self.eval_writer = tf.summary.FileWriter(save_dir + '/transfer_eval',
-                                             sess.graph)
+    self.eval_writer = self.train_writer
 
     self.domain_A = common_joint2.get_domain_A(batch_size)
     self.domain_B = common_joint2.get_domain_B(batch_size)
@@ -684,8 +682,8 @@ def main(unused_argv):
   dirs = common_joint2.get_dirs('joint2_mnist_family', sig)
   save_dir, sample_dir = dirs
 
-  layers = [int(_) for _ in FLAGS.layers.split(',')]
-  cls_layers = [int(_) for _ in FLAGS.cls_layers.split(',')]
+  layers = [int(_) for _ in FLAGS.layers.strip().split(',') if _]
+  cls_layers = [int(_) for _ in FLAGS.cls_layers.strip().split(',') if _]
   Encoder = partial(
       model_joint2.EncoderLatentFull,
       input_size=FLAGS.n_latent,
@@ -811,7 +809,7 @@ def main(unused_argv):
       sig = 'sample_transfer_A_to_B'
       x_A, _ = helper_joint.sample_prior(eval_batch_size)
       x_prime_B = helper_joint.get_x_prime_B_from_x_A(x_A)
-      helper_joint.compare(x_A, x_B, helper_A, helper_B, eval_dir, i, sig)
+      helper_joint.compare(x_A, x_prime_B, helper_A, helper_B, eval_dir, i, sig)
       helper_A.save_data(x_A, sig + '_x_A', eval_dir)
       helper_B.save_data(x_prime_B, sig + '_x_prime_B', eval_dir)
 
