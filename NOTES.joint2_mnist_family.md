@@ -243,6 +243,29 @@ run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --cls_loss_beta 0.05 \
   --sig_extra "_exp3_vae+unsup+cls_run0" ;
 
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config_A "mnist_0_nlatent100" --config_B "fashion_mnist_0_nlatent100" \
+  --config_classifier_A "mnist_classifier_0" --config_classifier_B "fashion_mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "512,512,512,512,512,512" \
+  --cls_layers "," \
+  --prior_loss_beta 0.0025 \
+  --unsup_align_loss_beta 1.0 \
+  --cls_loss_beta 0.05 \
+  --sig_extra "_exp3_vae+unsup+cls_run0" ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --config_A "mnist_0_nlatent100" --config_B "fashion_mnist_0_nlatent100" \
+  --config_classifier_A "mnist_classifier_0" --config_classifier_B "fashion_mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 100 \
+  --layers "512,512,512,512,512,512" \
+  --cls_layers "," \
+  --prior_loss_beta 0.0004 \
+  --unsup_align_loss_beta 1.0 \
+  --cls_loss_beta 0.05 \
+  --sig_extra "_exp3_vae+unsup+cls_run0" ;
 
 
 ```
