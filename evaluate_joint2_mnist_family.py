@@ -93,18 +93,21 @@ def main(unused_argv):
       index_list.append(np.random.choice(index_candidate))
 
     x = []
+    emphasize = []
     x.append(dataset.train_mu[index_list[0]])
+    emphasize.append(len(x) - 1)
     for i_label in range(1, len(labels)):
       last_x = x[-1]
       this_x = dataset.train_mu[index_list[i_label]]
       for j in range(1, nb_images_between_labels + 1):
         x.append(last_x +
                  (this_x - last_x) * (float(j) / nb_images_between_labels))
+      emphasize.append(len(x) - 1)
     x = np.array(x, dtype=np.float32)
-    return x
+    return x, emphasize
 
-  x_A = get_x(dataset_A)
-  x_B = get_x(dataset_B)
+  x_A, emphasize = get_x(dataset_A)
+  x_B, _ = get_x(dataset_B)
   x_A_prime = helper_joint.get_x_prime_A(x_A)
   x_B_prime = helper_joint.get_x_prime_B(x_B)
   x_A_tr = helper_joint.get_x_prime_A_from_x_B(x_B)
@@ -124,7 +127,8 @@ def main(unused_argv):
         var,
         interpolate_sig + var_name,
         evaluate_dir,
-        batch_image_fn=batch_image_fn)
+        batch_image_fn=batch_image_fn,
+        emphasize=emphasize)
 
   save(helper_A, x_A, 'x_A')
   save(helper_A, x_A_prime, 'x_A_prime')

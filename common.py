@@ -252,11 +252,18 @@ def make_batch_image_grid(dim_grid, number_grid):
   return batch_image_grid
 
 
-def post_proc(img, config):
+def post_proc(img, config, emphasize=None):
   """Post process image `img` according to the dataset in `config`."""
   x = img
   x = np.minimum(1., np.maximum(0., x))  # clipping
   if dataset_is_mnist_family(config['dataset']):
     x = np.reshape(x, (-1, 28, 28))
     x = np.stack((x,) * 3, -1)  # grey -> rgb
+  if emphasize is not None:
+    for i in emphasize:
+      # Draw a border
+      x[i, 0, :] = [1.0, 0.0, 0.0]
+      x[i, -1, :] = [1.0, 0.0, 0.0]
+      x[i, :, 0] = [1.0, 0.0, 0.0]
+      x[i, :, -1] = [1.0, 0.0, 0.0]
   return x

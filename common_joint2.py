@@ -234,8 +234,13 @@ class ModelHelper(object):
     pred = np.argmax(pred, axis=-1)
     return pred
 
-  def save_data(self, x, name, save_dir, x_is_real_x=False,
-                batch_image_fn=None):
+  def save_data(self,
+                x,
+                name,
+                save_dir,
+                x_is_real_x=False,
+                batch_image_fn=None,
+                emphasize=None):
     """Save dataspace instances.
 
     Args:
@@ -246,13 +251,15 @@ class ModelHelper(object):
           not, `x` is converted to dataspace before saving
       batch_image_fn: An function that batches images. If not specified,
           default function `common.batch_image` will be used.
+      emphasize: An optional list of indecies of x to emphasize. It not specied,
+          nothing would be empasized.
     """
     batch_image_fn = batch_image_fn or common.batch_image
 
     if not x_is_real_x:
       np.savetxt(join(save_dir, '%s.array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
-    real_x = common.post_proc(real_x, self.config)
+    real_x = common.post_proc(real_x, self.config, emphasize=emphasize)
     batched_real_x = batch_image_fn(real_x)
     sample_file = join(save_dir, '%s.png' % name)
     common.save_image(batched_real_x, sample_file)
