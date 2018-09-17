@@ -33,6 +33,9 @@ FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer('load_ckpt_iter', -1, '')  # -1 for last ckpt
 tf.flags.DEFINE_string('interpolate_labels', '',
                        'a `,` separated list of 0-indexed labels.')
+tf.flags.DEFINE_string('interpolate_type', 'spherical',
+                       'type of interpolation. can be `linear` or `spherical`')
+
 tf.flags.DEFINE_integer('nb_images_between_labels', 1, '')
 tf.flags.DEFINE_integer('random_seed', 19260817, '')
 
@@ -85,6 +88,22 @@ def main(unused_argv):
   interpolate_labels = [int(_) for _ in FLAGS.interpolate_labels.split(',')]
   nb_images_between_labels = FLAGS.nb_images_between_labels
   labels = interpolate_labels
+  interpolate_type = FLAGS.interpolate_type
+
+  def interpolate(x_start, x_end, nb):
+    xs = []
+    for j in range(0, nb + 1):
+      if interpolate_type == 'linear':
+        p = float(j) / nb
+        cp = 1.0 - p
+      elif interpolate_type == 'spherical':
+        p = np.sqrt(float(j) / nb)
+        cp = np.sqrt(1.0 - p)
+      else:
+        raise ValueError('Unsupported interpolate_type %s' % interpolate_type)
+      x = x_start * cp + x_end * p
+      xs.append(x)
+    return xs
 
   def get_x(dataset):
     index_list = []
@@ -99,9 +118,7 @@ def main(unused_argv):
     for i_label in range(1, len(labels)):
       last_x = x[-1]
       this_x = dataset.train_mu[index_list[i_label]]
-      for j in range(1, nb_images_between_labels + 1):
-        x.append(last_x +
-                 (this_x - last_x) * (float(j) / nb_images_between_labels))
+      x.extend(interpolate(last_x, this_x, nb_images_between_labels)[1:])
       emphasize.append(len(x) - 1)
     x = np.array(x, dtype=np.float32)
     return x, emphasize
@@ -119,8 +136,9 @@ def main(unused_argv):
       rows=len(x_A),
       cols=1,
   )
-  interpolate_sig = 'interpolate_il:%s:_nibl:%d:_' % (
-      FLAGS.interpolate_labels, FLAGS.nb_images_between_labels)
+  interpolate_sig = 'interpolate_il:%s:_it:%s:_nibl:%d:_' % (
+      FLAGS.interpolate_labels, FLAGS.interpolate_type,
+      FLAGS.nb_images_between_labels)
 
   def save(helper, var, var_name):
     helper.save_data(
