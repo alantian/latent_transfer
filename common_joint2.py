@@ -19,6 +19,7 @@ import os
 from os.path import join
 
 import numpy as np
+from scipy.io import wavfile
 from scipy.stats import entropy
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
@@ -26,6 +27,18 @@ import tensorflow as tf
 import common
 import model_dataspace
 import model_joint2
+
+FLAGS = tf.flags.FLAGS
+tf.flags.DEFINE_string(
+    'wavegan_gen_ckpt_dir', '', 'The directory to WaveGAN generator\'s ckpt. '
+    'If WaveGAN is involved, this argument must be set.')
+tf.flags.DEFINE_string(
+    'wavegan_inception_ckpt_dir', '',
+    'The directory to WaveGAN inception (classifier)\'s ckpt. '
+    'If WaveGAN is involved, this argument must be set.')
+tf.flags.DEFINE_string(
+    'wavegan_latent_dir', '', 'The directory to WaveGAN\'s latent space.'
+    'If WaveGAN is involved, this argument must be set.')
 
 DirsBlob = namedtuple('DirsBlob', ['save_dir', 'sample_dir'])
 
@@ -100,6 +113,9 @@ def load_dataset(config_name, exp_uid):
   """
 
   config = common.load_config(config_name)
+  this_config_is_wavegan = common.config_is_wavegan(config)
+  if this_config_is_wavegan:
+    return load_dataset_wavegan()
 
   model_uid = common.get_model_uid(config_name, exp_uid)
 
@@ -128,6 +144,39 @@ def load_dataset(config_name, exp_uid):
       train_sigma=train_sigma,
       index_grouped_by_label=index_grouped_by_label,
       save_path=save_path,
+  )
+
+
+def load_dataset_wavegan():
+  """Load WaveGAN's dataset.
+
+  The loaded dataset consists of:
+    - original data (dataset_blob, train_data, train_label),
+    - encoded data from a pretrained model (train_mu, train_sigma), and
+    - index grouped by label (index_grouped_by_label).
+
+  Some of these attributes are not avaiable (set as None) but are left here
+  to keep everything aligned with returned value of `load_dataset`.
+
+  Returns:
+    An tuple of abovementioned components in the dataset.
+  """
+
+  latent_dir = os.path.expanduser(FLAGS.wavegan_latent_dir)
+  path_train = os.path.join(latent_dir, 'data_train.npz')
+  train = np.load(path_train)
+  train_z = train['z']
+  train_mu = train_z
+  train_label = train['label']
+  index_grouped_by_label = common.get_index_grouped_by_label(train_label)
+
+  return DatasetBlob(
+      train_data=None,
+      train_label=train_label,
+      train_mu=train_mu,
+      train_sigma=None,
+      index_grouped_by_label=index_grouped_by_label,
+      save_path=None,
   )
 
 
@@ -265,6 +314,134 @@ class ModelHelper(object):
     common.save_image(batched_real_x, sample_file)
 
 
+class ModelHelperWaveGAN(object):
+  """A Helper that provides sampling and classification for pre-trained WaveGAN.
+  """
+  DEFAULT_BATCH_SIZE = 100
+
+  def __init__(self):
+    self.build()
+
+  def build(self):
+    """Build the TF graph and heads from pre-trained WaveGAN ckpts.
+
+    It also prepares different graph, session and heads for sampling and
+    classification respectively.
+    """
+
+    # pylint:disable=unused-variable
+    # Reason:
+    #   All endpoints are stored as attribute at the end of `_build`.
+    #   Pylint cannot infer this case so it emits false alarm of
+    #   unused-variable if we do not disable this warning.
+
+    # pylint:disable=invalid-name
+    # Reason:
+    #   Variable useing 'G' in is name to be consistent with WaveGAN's author
+    #   has name consider to be invalid by pylint so we disable the warning.
+
+    # Dataset (SC09, WaveGAN)'s generator
+    graph_sc09_gan = tf.Graph()
+    with graph_sc09_gan.as_default():
+      # Use the retrained, Gaussian priored model
+      gen_ckpt_dir = os.path.expanduser(FLAGS.wavegan_gen_ckpt_dir)
+      sess_sc09_gan = tf.Session(graph=graph_sc09_gan)
+      saver_gan = tf.train.import_meta_graph(
+          join(gen_ckpt_dir, 'infer', 'infer.meta'))
+
+    # Dataset (SC09, WaveGAN)'s  classifier (inception)
+    graph_sc09_class = tf.Graph()
+    with graph_sc09_class.as_default():
+      inception_ckpt_dir = os.path.expanduser(FLAGS.wavegan_inception_ckpt_dir)
+      sess_sc09_class = tf.Session(graph=graph_sc09_class)
+      saver_class = tf.train.import_meta_graph(
+          join(inception_ckpt_dir, 'infer.meta'))
+
+    # Dataset B (SC09, WaveGAN)'s Tensor symbols
+    sc09_gan_z = graph_sc09_gan.get_tensor_by_name('z:0')
+    sc09_gan_G_z = graph_sc09_gan.get_tensor_by_name('G_z:0')[:, :, 0]
+
+    # Classification: Tensor symbols
+    sc09_class_x = graph_sc09_class.get_tensor_by_name('x:0')
+    sc09_class_scores = graph_sc09_class.get_tensor_by_name('scores:0')
+
+    # Add all endpoints as object attributes
+    for k, v in locals().items():
+      self.__dict__[k] = v
+
+  def restore(self):
+    """Restore the weights of models."""
+    gen_ckpt_dir = self.gen_ckpt_dir
+    graph_sc09_gan = self.graph_sc09_gan
+    saver_gan = self.saver_gan
+    sess_sc09_gan = self.sess_sc09_gan
+
+    inception_ckpt_dir = self.inception_ckpt_dir
+    graph_sc09_class = self.graph_sc09_class
+    saver_class = self.saver_class
+    sess_sc09_class = self.sess_sc09_class
+
+    with graph_sc09_gan.as_default():
+      saver_gan.restore(sess_sc09_gan, join(gen_ckpt_dir, 'bridge',
+                                            'model.ckpt'))
+
+    with graph_sc09_class.as_default():
+      saver_class.restore(sess_sc09_class,
+                          join(inception_ckpt_dir, 'best_acc-103005'))
+
+    # pylint:enable=unused-variable
+    # pylint:enable=invalid-name
+
+  def decode(self, z, batch_size=None):
+    """Decode from given latant space vectors `z`.
+
+    Args:
+      z: A numpy array of latent space vectors.
+      batch_size: (Optional) a integer to indication batch size for computation
+          which is useful if the sampling requires lots of GPU memory.
+
+    Returns:
+      A numpy array, the dataspace points from decoding.
+    """
+    batch_size = batch_size or self.DEFAULT_BATCH_SIZE
+    return run_with_batch(self.sess_sc09_gan, self.sc09_gan_G_z,
+                          self.sc09_gan_z, z, batch_size)
+
+  def classify(self, real_x, batch_size=None):
+    """Classify given dataspace points `real_x`.
+
+    Args:
+      real_x: A numpy array of dataspace points.
+      batch_size: (Optional) a integer to indication batch size for computation
+          which is useful if the classification requires lots of GPU memory.
+
+    Returns:
+      A numpy array, the prediction from classifier.
+    """
+    batch_size = batch_size or self.DEFAULT_BATCH_SIZE
+    pred = run_with_batch(self.sess_sc09_class, self.sc09_class_scores,
+                          self.sc09_class_x, real_x, batch_size)
+    pred = np.argmax(pred, axis=-1)
+    return pred
+
+  def save_data(self, x, name, save_dir, x_is_real_x=False):
+    """Save dataspace instances.
+
+    Args:
+      x: A numpy array of dataspace points.
+      name: A string indicating the name in the saved file.
+      save_dir: A string indicating the directory to put the saved file.
+      x_is_real_x: An boolean indicating whether `x` is already in dataspace. If
+          not, `x` is converted to dataspace before saving
+    """
+    if not x_is_real_x:
+      np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
+    real_x = x if x_is_real_x else self.decode(x)
+    real_x = real_x.reshape(-1)
+    sample_file = join(save_dir, '%s.wav' % name)
+    wavfile.write(sample_file, rate=16000, data=real_x)
+
+
 class OneSideHelper(object):
   """The helper that manages model and classifier in dataspace for joint model.
 
@@ -287,13 +464,21 @@ class OneSideHelper(object):
       exp_uid_classifier,
   ):
     config = common.load_config(config_name)
-    # In this case two diffent objects serve two purpose.
-    m_helper = ModelHelper(config_name, exp_uid)
-    m_classifier_helper = ModelHelper(config_name_classifier,
-                                      exp_uid_classifier)
+    this_config_is_wavegan = common.config_is_wavegan(config)
+
+    if this_config_is_wavegan:
+      # The sample object servers both purpose.
+      m_helper = ModelHelperWaveGAN()
+      m_classifier_helper = m_helper
+    else:  # MNIST
+      # In this case two diffent objects serve two purpose.
+      m_helper = ModelHelper(config_name, exp_uid)
+      m_classifier_helper = ModelHelper(config_name_classifier,
+                                        exp_uid_classifier)
 
     self.config_name = config_name
     self.config = config
+    self.this_config_is_wavegan = this_config_is_wavegan
     self.m_helper = m_helper
     self.m_classifier_helper = m_classifier_helper
 
@@ -306,9 +491,14 @@ class OneSideHelper(object):
     m_helper = self.m_helper
     m_classifier_helper = self.m_classifier_helper
 
-    m_helper.restore_best('vae_saver', dataset.save_path, 'vae_best_%s.ckpt')
-    m_classifier_helper.restore_best('classifier_saver', dataset.save_path,
-                                     'classifier_best_%s.ckpt')
+    if self.this_config_is_wavegan:
+      m_helper.restore()
+      # We don't need restore the `m_classifier_helper` again since `m_helper`
+      # and `m_classifier_helper` are two identicial objects.
+    else:
+      m_helper.restore_best('vae_saver', dataset.save_path, 'vae_best_%s.ckpt')
+      m_classifier_helper.restore_best('classifier_saver', dataset.save_path,
+                                       'classifier_best_%s.ckpt')
 
   def decode_and_classify(self, x):
     real_x = self.m_helper.decode(x)

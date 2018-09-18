@@ -109,9 +109,22 @@ def _load_celeba(data_path, postfix):
           attribute_names)
 
 
+def config_is_mnist_family(config):
+  return dataset_is_mnist_family(config['dataset'])
+
+
+def config_is_wavegan(config):
+  return dataset_is_wavegan(config['dataset'])
+
+
 def dataset_is_mnist_family(dataset):
   """returns if dataset is of MNIST family."""
   return dataset.lower() == 'mnist' or dataset.lower() == 'fashion-mnist'
+
+
+def dataset_is_wavegan(dataset):
+  """returns if dataset is WaveGAN."""
+  return dataset.lower() == 'wavegan'
 
 
 def load_dataset(config):
