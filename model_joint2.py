@@ -30,20 +30,20 @@ import nn
 ds = tf.contrib.distributions
 
 
-def affine(x, output_size, z=None, residual=False, softplus=False):
-  """Make an affine layer with optional residual link and softplus activation.
+def affine(x, output_size, z=None, gated=False, softplus=False):
+  """Make an affine layer with optional gated link and softplus activation.
 
   Args:
     x: An TF tensor which is the input.
     output_size: The size of output, e.g. the dimension of this affine layer.
-    z: An TF tensor which is added when residual link is enabled.
-    residual: A boolean indicating whether to enable residual link.
+    z: An TF tensor which is added when gated link is enabled.
+    gated: A boolean indicating whether to enable gated link.
     softplus: Whether to apply softplus activation at the end.
 
   Returns:
     The output tensor.
   """
-  if residual:
+  if gated:
     x = snt.Linear(2 * output_size)(x)
     z = snt.Linear(output_size)(z)
     dz = x[:, :output_size]
@@ -58,6 +58,31 @@ def affine(x, output_size, z=None, residual=False, softplus=False):
   return output
 
 
+def linears(x, layers, residual=False):
+  """Make several linear layers (as in MLP).
+
+  Args:
+    x: An TF tensor which is the input.
+    layers: A list of sizes in linear layers.
+    residual: A boolean indicating whether to enable residual link.
+
+  Returns:
+    The output tensor.
+  """
+
+  def residual_is_possible(tensor_a, tensor_b):
+    return tensor_a.shape[-1] == tensor_b.shape[-1]
+
+  for l in layers:
+    nx = tf.nn.relu(snt.Linear(l)(x))
+    if residual:
+      ox = x if residual_is_possible(x, nx) else snt.Linear(l)(x)
+      x = ox + nx
+    else:
+      x = nx
+  return x
+
+
 class EncoderLatentFull(snt.AbstractModule):
   """An MLP (Full layers) encoder for modeling latent space."""
 
@@ -66,24 +91,26 @@ class EncoderLatentFull(snt.AbstractModule):
                output_size,
                layers=(2048,) * 4,
                name='EncoderLatentFull',
-               residual=True):
+               gated=True,
+               residual=False):
     super(EncoderLatentFull, self).__init__(name=name)
     self.layers = layers
     self.input_size = input_size
     self.output_size = output_size
+    self.gated = gated
     self.residual = residual
+    tf.logging.info(
+        'EncoderLatentFull: gated = %s / residual = %s' % (gated, residual))
 
   def _build(self, z):  # pylint:disable=W0221
     assert isinstance(z, tuple)
     z = tf.concat(z, axis=-1)
 
     x = z
-    for l in self.layers:
-      x = tf.nn.relu(snt.Linear(l)(x))
+    x = linears(x, self.layers, residual=self.residual)
 
-    mu = affine(x, self.output_size, z, residual=self.residual, softplus=False)
-    sigma = affine(
-        x, self.output_size, z, residual=self.residual, softplus=True)
+    mu = affine(x, self.output_size, z, gated=self.gated, softplus=False)
+    sigma = affine(x, self.output_size, z, gated=self.gated, softplus=True)
     return mu, sigma
 
 
@@ -95,22 +122,25 @@ class DecoderLatentFull(snt.AbstractModule):
                output_size,
                layers=(2048,) * 4,
                name='DecoderLatentFull',
-               residual=True):
+               gated=True,
+               residual=False):
     super(DecoderLatentFull, self).__init__(name=name)
     self.layers = layers
     self.input_size = input_size
     self.output_size = output_size
+    self.gated = gated
     self.residual = residual
+    tf.logging.info(
+        'DecoderLatentFull: gated = %s / residual = %s' % (gated, residual))
 
   def _build(self, z):  # pylint:disable=W0221
     assert isinstance(z, tuple)
     z = tf.concat(z, axis=-1)
 
     x = z
-    for l in self.layers:
-      x = tf.nn.relu(snt.Linear(l)(x))
+    x = linears(x, self.layers, residual=self.residual)
 
-    mu = affine(x, self.output_size, z, residual=self.residual, softplus=False)
+    mu = affine(x, self.output_size, z, gated=self.gated, softplus=False)
     return mu
 
 

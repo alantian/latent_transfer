@@ -35,6 +35,7 @@ FLAGS = tf.flags.FLAGS
 def main(unused_argv):
   """Main function."""
   del unused_argv
+  tf.logging.set_verbosity(tf.logging.INFO)
 
   dataset_A = common_joint2.load_dataset(FLAGS.config_A, FLAGS.exp_uid_A)
   dataset_B = common_joint2.load_dataset(FLAGS.config_B, FLAGS.exp_uid_B)

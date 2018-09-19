@@ -474,6 +474,7 @@ run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0" ;
 
 
+
 run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --default_scratch "~/workspace/scratch/latent_transfer/" \
   --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
@@ -488,6 +489,139 @@ run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --cls_loss_beta 0.6 \
   --cls_layers "," \
   --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0" ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.01 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run1_ni_50k" ;
+
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.03 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run1_ni_50k" ;
+
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.01 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.03 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 24 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.0075 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
+
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 32 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.005 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 64 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --prior_loss_beta 0.0025 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
+
+
+run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
+  --default_scratch "~/workspace/scratch/latent_transfer/" \
+  --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
+  --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
+  --wavegan_latent_dir "~/workspace/scratch/latent_transfer/wavegan/wavegan_gaussian" \
+  --config_A "mnist_0_nlatent100" --config_B "wavegan" \
+  --config_classifier_A "mnist_classifier_0" \
+  --n_latent 100 --n_latent_shared 16 \
+  --layers "1024,1024,1024,1024,1024,1024,1024,1024" \
+  --residual=true \
+  --prior_loss_beta 0.01 \
+  --unsup_align_loss_beta 3.0 \
+  --cls_loss_beta 0.3 \
+  --cls_layers "," \
+  --n_iters 50000 \
+  --sig_extra "_exp3_mnist_wavegan_vae+unsup+sup_run0_ni_50k" ;
 
 
 ```

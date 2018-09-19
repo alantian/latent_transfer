@@ -35,6 +35,7 @@ tf.flags.DEFINE_string('exp_uid_classifier_B', '_exp_0', '')
 
 tf.flags.DEFINE_string('layers', '256,256,256,256', '')
 tf.flags.DEFINE_string('cls_layers', '256', '')
+tf.flags.DEFINE_boolean('residual', False, '')
 tf.flags.DEFINE_integer('n_latent', 100, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')
 tf.flags.DEFINE_integer('n_label', 10, '')
@@ -55,11 +56,12 @@ tf.flags.DEFINE_integer('n_iters_per_save', 1000, '')
 
 def get_sig():
   """Get signature of this run, with parameterization resolved."""
-  return 'sigv1_cA:{cA}:_cb:{cB}:_l:{l}:_cl:{cl}:-_nl{nl}_nls{nls}_ns{ns}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(  # pylint:disable=C0301
+  return 'sigv2_cA:{cA}:_cb:{cB}:_l:{l}:_cl:{cl}:-r{r}_nl{nl}_nls{nls}_ns{ns}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(  # pylint:disable=C0301
       cA=FLAGS.config_A,
       cB=FLAGS.config_B,
       l=FLAGS.layers,
       cl=FLAGS.cls_layers,
+      r=FLAGS.residual,
       nl=FLAGS.n_latent,
       nls=FLAGS.n_latent_shared,
       ns=FLAGS.n_sup,
@@ -82,12 +84,14 @@ def get_vae_config():
       input_size=FLAGS.n_latent,
       output_size=FLAGS.n_latent_shared,
       layers=layers,
+      residual=FLAGS.residual,
   )
   Decoder = partial(
       model_joint2.DecoderLatentFull,
       input_size=FLAGS.n_latent_shared,
       output_size=FLAGS.n_latent,
       layers=layers,
+      residual=FLAGS.residual,
   )
   Classifier = partial(
       model_joint2.ClassifierLatentFull,

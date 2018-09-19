@@ -49,7 +49,7 @@ def extract_images(f):
   Raises:
     ValueError: If the bytestream does not start with 2051.
   """
-  tf.logging.info('Extracting', f.name)
+  tf.logging.info('Extracting %s', f.name)
   with gzip.GzipFile(fileobj=f) as bytestream:
     magic = _read32(bytestream)
     if magic != 2051:
@@ -87,7 +87,7 @@ def extract_labels(f, one_hot=False, num_classes=10):
   Raises:
     ValueError: If the bystream doesn't start with 2049.
   """
-  tf.logging.info('Extracting', f.name)
+  tf.logging.info('Extracting %s', f.name)
   with gzip.GzipFile(fileobj=f) as bytestream:
     magic = _read32(bytestream)
     if magic != 2049:
@@ -165,8 +165,9 @@ class DataSet(object):
         fake_label = [1] + [0] * 9
       else:
         fake_label = 0
-      return [fake_image for _ in
-              range(batch_size)], [fake_label for _ in range(batch_size)]
+      return [fake_image for _ in range(batch_size)], [
+          fake_label for _ in range(batch_size)
+      ]
     start = self._index_in_epoch
     # Shuffle for the first epoch
     if self._epochs_completed == 0 and start == 0 and shuffle:
