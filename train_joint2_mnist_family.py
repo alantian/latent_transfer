@@ -31,10 +31,13 @@ ds = tf.contrib.distributions
 
 FLAGS = tf.flags.FLAGS
 
+tf.flags.DEFINE_boolean('post_mortem', True, '')
+
 
 def main(unused_argv):
   """Main function."""
   del unused_argv
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   dataset_A = common_joint2.load_dataset(FLAGS.config_A, FLAGS.exp_uid_A)
@@ -166,7 +169,7 @@ if __name__ == '__main__':
   try:
     tf.app.run(main)
   except Exception:  # pylint:disable=W0703
-    post_mortem = True
+    post_mortem = FLAGS.post_mortem
     if post_mortem:
       type_, value_, tb = sys.exc_info()
       traceback.print_exc()

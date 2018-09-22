@@ -58,6 +58,32 @@ def affine(x, output_size, z=None, gated=False, softplus=False):
   return output
 
 
+def residual_linear(x, l, project_shortcut=False, is_training=True):
+  # see https://arxiv.org/pdf/1512.03385.pdf
+  # and https://blog.waya.ai/deep-residual-learning-9610bb62c355
+  use_batch_norm = False
+
+  shortcut = x
+  x = snt.Linear(l, use_bias=False)(x)
+  if use_batch_norm:
+    x = snt.BatchNorm(update_ops_collection=tf.GraphKeys.UPDATE_OPS)(
+        x, is_training=is_training)
+  x = tf.nn.leaky_relu(x)
+  x = snt.Linear(l, use_bias=False)(x)
+  if use_batch_norm:
+    x = snt.BatchNorm(update_ops_collection=tf.GraphKeys.UPDATE_OPS)(
+        x, is_training=is_training)
+  if project_shortcut:
+    shortcut = snt.Linear(l, use_bias=False)(shortcut)
+    if use_batch_norm:
+      shortcut = snt.BatchNorm(update_ops_collection=tf.GraphKeys.UPDATE_OPS)(
+          shortcut, is_training=is_training)
+
+  x = x + shortcut
+  x = tf.nn.leaky_relu(x)
+  return x
+
+
 def linears(x, layers, residual=False):
   """Make several linear layers (as in MLP).
 
@@ -70,16 +96,13 @@ def linears(x, layers, residual=False):
     The output tensor.
   """
 
-  def residual_is_possible(tensor_a, tensor_b):
-    return tensor_a.shape[-1] == tensor_b.shape[-1]
-
-  for l in layers:
-    nx = tf.nn.relu(snt.Linear(l)(x))
+  for i, l in enumerate(layers):
+    x_shape = tuple(x.get_shape().as_list())
     if residual:
-      ox = x if residual_is_possible(x, nx) else snt.Linear(l)(x)
-      x = ox + nx
+      x = residual_linear(x, l, project_shortcut=(x_shape[-1] != l))
     else:
-      x = nx
+      x = tf.nn.relu(snt.Linear(l)(x))
+
   return x
 
 
@@ -256,6 +279,10 @@ class VAE(snt.AbstractModule):
     cls_loss = tf.losses.sparse_softmax_cross_entropy(labels_cls, logits_cls)
     cls_accuarcy = nn.on_the_fly_accuarcy(labels_cls, logits_cls)
 
+    # Only collects BN-related updating here.
+    # This means inferrence below would not (and should not) update
+    # BN statistics.
+    update_ops = tf.group(*tf.get_collection(tf.GraphKeys.UPDATE_OPS))
     # ---------------------------------------------------------------------
     # Deconde (inferring)
     # ---------------------------------------------------------------------
@@ -307,6 +334,8 @@ class VAE(snt.AbstractModule):
     vae_saver = tf.train.Saver(vae_vars, max_to_keep=100)
     train_full = tf.train.AdamOptimizer(learning_rate=lr).minimize(
         full_loss, var_list=vae_vars)
+
+    train_full = tf.group(train_full, update_ops)
 
     # Add all endpoints as object attributes
     for k, v in iteritems(locals()):

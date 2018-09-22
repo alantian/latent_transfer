@@ -113,7 +113,7 @@ class DataSet(object):
       dtype=np.float32,
       reshape=True,
       seed=None,  # pylint:disable=unused-argument
-  ):  # pylint:disable=g-doc-args
+  ):
     """Construct a DataSet.
 
     one_hot arg is used only if fake_data is true.  `dtype` can be either
