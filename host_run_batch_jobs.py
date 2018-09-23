@@ -66,12 +66,16 @@ def main(unused_argv):
   proc_to_run = {}  # hash: str -> cmd: str
   free_gpus_set = set(range(FLAGS.nb_gpu))
 
+  last_state_changed = True
+
   # Main loop
   while True:
     # logging.info('Loop tick')
     # logging.info('proc_in_run %s', proc_in_run)
     # logging.info('proc_to_run %s', proc_to_run)
     # logging.info('free_gpus_set %s', free_gpus_set)
+
+    state_changed = False
 
     # print and eject finished popen object
     hash_keys = list(proc_in_run.keys())
@@ -87,6 +91,7 @@ def main(unused_argv):
         free_gpus_set.add(id_gpu)
         add_to_finished_hash(hash_)
         del proc_in_run[hash_]
+        state_changed = True
 
     # Add job to queue if is not seen before
     finished_hashs_set = get_finished_hashs_set()
@@ -98,6 +103,7 @@ def main(unused_argv):
           hash_ not in proc_to_run):
         proc_to_run[hash_] = cmd
         logging.info('Add to queue: "%s"', shlex.split(cmd))
+        state_changed = True
 
     # Launch if there is slot
     hash_keys = list(proc_to_run.keys())
@@ -118,6 +124,12 @@ def main(unused_argv):
         )
         proc_in_run[hash_] = (id_gpu, popen)
         del proc_to_run[hash_]
+        state_changed = True
+
+    if not state_changed:
+      if last_state_changed:  # only print once when entering the state-not-changed
+        logging.info('State not changed.')
+      last_state_changed = state_changed
 
     # Sleep
     time.sleep(FLAGS.loop_interval)
