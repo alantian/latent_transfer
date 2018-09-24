@@ -34,7 +34,7 @@ tf.flags.DEFINE_string('config_classifier_B', '', '')
 tf.flags.DEFINE_string('exp_uid_classifier_B', '_exp_0', '')
 
 tf.flags.DEFINE_string('layers', '256,256,256,256', '')
-tf.flags.DEFINE_string('cls_layers', '256', '')
+tf.flags.DEFINE_string('cls_layers', ',', '')
 tf.flags.DEFINE_boolean('residual', False, '')
 tf.flags.DEFINE_integer('n_latent', 100, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')

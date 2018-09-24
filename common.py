@@ -201,6 +201,12 @@ def get_index_grouped_by_label(label):
   return index_grouped_by_label
 
 
+def batch_audio(b, max_samples=60):
+  audio = b[:max_samples]
+  audio = audio.reshape(-1)
+  return audio
+
+
 def batch_image(b, max_images=60, rows=6, cols=10):
   """Turn a batch of images into a single image mosaic."""
   mb = min(b.shape[0], max_images)

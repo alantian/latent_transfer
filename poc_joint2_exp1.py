@@ -92,6 +92,8 @@ class SyntheticData(object):
 
 FLAGS = tf.flags.FLAGS
 
+tf.flags.DEFINE_string('layers', '8,8,8', '')
+tf.flags.DEFINE_string('cls_layers', ',', '')
 tf.flags.DEFINE_integer('n_latent', 2, '')
 tf.flags.DEFINE_integer('n_latent_shared', 2, '')
 tf.flags.DEFINE_integer('n_label', 2, '')
@@ -106,7 +108,9 @@ tf.flags.DEFINE_string('sig_extra', '', '')
 
 
 def get_sig():
-  return 'nl{nl}_nls{nls}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(
+  return 'sigv2__l:{l}:_cl:{cl}:_nl{nl}_nls{nls}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(
+      l=FLAGS.layers,
+      cl=FLAGS.cls_layers,
       nl=FLAGS.n_latent,
       nls=FLAGS.n_latent_shared,
       lr=FLAGS.lr,
@@ -127,7 +131,7 @@ PLOT_X_1_MIN = -1.2
 PLOT_X_1_MAX = +1.2
 
 
-def draw_plot(xs, attrs, labels, fpath, plot_is_x):
+def draw_plot(xs, attrs, labels, fpath, plot_is_x, cls_wb=None):
   import matplotlib
   # avoid tkinter. This should happen before `import matplotlib.pyplot`.
   matplotlib.use('agg')
@@ -167,8 +171,21 @@ def draw_plot(xs, attrs, labels, fpath, plot_is_x):
 
   fig, ax = plt.subplots()
   if plot_is_x:
-    ax.set_xlim((PLOT_X_0_MIN, PLOT_X_0_MAX))
-    ax.set_ylim((PLOT_X_1_MIN, PLOT_X_1_MAX))
+    x_0_low, x_0_high = (PLOT_X_0_MIN, PLOT_X_0_MAX)
+    x_1_low, x_1_high = (PLOT_X_1_MIN, PLOT_X_1_MAX)
+  else:
+    x_0_v_low, x_0_v_high = x[:, 0].min(), x[:, 0].max()
+    x_0_v_mid = (x_0_v_low + x_0_v_high) / 2.0
+    x_0_low = x_0_v_mid + (x_0_v_low - x_0_v_mid) * 1.2
+    x_0_high = x_0_v_mid + (x_0_v_high - x_0_v_mid) * 1.2
+
+    x_1_v_low, x_1_v_high = x[:, 1].min(), x[:, 1].max()
+    x_1_v_mid = (x_1_v_low + x_1_v_high) / 2.0
+    x_1_low = x_1_v_mid + (x_1_v_low - x_1_v_mid) * 1.2
+    x_1_high = x_1_v_mid + (x_1_v_high - x_1_v_mid) * 1.2
+
+  ax.set_xlim((x_0_low, x_0_high))
+  ax.set_ylim((x_1_low, x_1_high))
 
   # for note in notes:
   for note in new_notes:
@@ -183,6 +200,35 @@ def draw_plot(xs, attrs, labels, fpath, plot_is_x):
         norm=matplotlib.colors.Normalize(vmin=0., vmax=3.),
         alpha=0.6,
     )
+
+  if cls_wb is not None:
+    w, b = cls_wb
+    """
+      x[0] * w[0][0] + x[1] * w[1][0] + b[0] ==
+      x[0] * w[0][1] + x[1] * w[1][1] + b[1]
+    =>
+      x[0] * (w[0][0] - w[0][1]) + x[1] * (w[1][0] - w[1][1]) + (b[0] - b[1]) == 0
+    => 
+      let c_[0] = (w[0][0] - w[0][1])  / 
+          c_[1] = (w[1][0] - w[1][1])  /
+          c_[2] = (b[0] - b[1])
+      x[0] * c_[0] + x[1] * c_[1] + c_[2] == 0  
+    """
+    c_ = [0., 0., 0.]
+    c_[0] = (w[0][0] - w[0][1])
+    c_[1] = (w[1][0] - w[1][1])
+    c_[2] = (b[0] - b[1])
+
+    lp0 = [0., 0.]
+    lp0[0] = x_0_low
+    lp0[1] = (-(lp0[0] * c_[0] + c_[2])) / c_[1]
+    lp1 = [0., 0.]
+    lp1[0] = x_0_high
+    lp1[1] = (-(lp1[0] * c_[0] + c_[2])) / c_[1]
+
+    # plt.plot(lp0, lp1, 'k-', alpha=0.4)
+    plt.plot([lp0[0], lp1[0]], [lp0[1], lp1[1]], alpha=0.4)
+
   fig.savefig(fpath)
   plt.close(fig)
 
@@ -203,7 +249,8 @@ def main(unused_argv):
       plot_is_x=True)
 
   # make model
-  layers = [8, 8, 8]
+  layers = [int(_) for _ in FLAGS.layers.strip().split(',') if _]
+  cls_layers = [int(_) for _ in FLAGS.cls_layers.strip().split(',') if _]
   Encoder = partial(
       model_joint2.EncoderLatentFull,
       input_size=FLAGS.n_latent,
@@ -216,12 +263,12 @@ def main(unused_argv):
       output_size=FLAGS.n_latent,
       layers=layers,
   )
-  cls_layers = [8]
   Classifier = partial(
       model_joint2.ClassifierLatentFull,
       input_size=FLAGS.n_latent_shared,
       output_size=FLAGS.n_label,
       layers=cls_layers,
+      gated=False,
   )
   vae_config = {
       'Encoder': Encoder,
@@ -315,10 +362,21 @@ def main(unused_argv):
           [x_prime_A, x_prime_B_to_A], [attr_A, attr_B], [label_A, label_B],
           join(this_iter_sample_dir, 'x_B_to_A_and_x_A.png'),
           plot_is_x=True)
+
+      cls_debug_info = m.classifier.debug_info['affine']['linear']
+      cls_w, cls_b = sess.run([cls_debug_info.w, cls_debug_info.b])
       draw_plot(
           [z_A, z_B], [attr_A, attr_B], [label_A, label_B],
           join(this_iter_sample_dir, 'z.png'),
-          plot_is_x=False)
+          plot_is_x=False,
+          cls_wb=(cls_w, cls_b))
+      draw_plot(
+          [z_A, z_B],
+          [attr_A, attr_B],
+          [label_A, label_B],
+          join(this_iter_sample_dir, 'z_no_bdr.png'),
+          plot_is_x=False,
+      )
 
 
 # pylint:disable=all

@@ -437,9 +437,9 @@ class ModelHelperWaveGAN(object):
     if not x_is_real_x:
       np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
-    real_x = real_x.reshape(-1)
+    batched_real_x = common.batch_audio(real_x)
     sample_file = join(save_dir, '%s.wav' % name)
-    wavfile.write(sample_file, rate=16000, data=real_x)
+    wavfile.write(sample_file, rate=16000, data=batched_real_x)
 
 
 class OneSideHelper(object):

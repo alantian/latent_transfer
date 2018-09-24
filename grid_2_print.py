@@ -12,6 +12,7 @@ shared_pattern = """\
   --config_classifier_A "mnist_classifier_0" --config_classifier_B "fashion_mnist_classifier_0" \
   --n_latent 100 --n_latent_shared 8 \
   --layers "512,512,512,512" \
+  --cls_layers "," \
   --prior_loss_beta {plb} \
   --unsup_align_loss_beta {ualb} \
   --cls_loss_beta {clb}  \
@@ -45,7 +46,7 @@ for plb in [0.0, plb_base * 1.]:
   for ualb in [0.0, ualb_base * 1.]:
     for clb in [0.0, clb_base * 1.]:
       for ns in [-1, 0, 10, 100, 1000, 10000]:
-        if clb == 0 and ns != -1:
+        if (clb == 0 and ns != -1) or (clb > 0.0 and ns == 0):
           continue  # no need to waste
         cmd = train_pattern.format(plb=plb, ualb=ualb, clb=clb, ns=ns)
         cmd = re.sub(' +', ' ', cmd)

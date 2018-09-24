@@ -16,6 +16,7 @@ run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --config_classifier_A "mnist_classifier_0" \
   --n_latent 100 --n_latent_shared 16 \
   --layers "1024,1024,1024,1024,1024,1024" \
+  --cls_layers "," \
   --prior_loss_beta {plb} \
   --unsup_align_loss_beta {ualb} \
   --cls_loss_beta {clb} \

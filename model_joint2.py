@@ -30,7 +30,8 @@ import nn
 ds = tf.contrib.distributions
 
 
-def affine(x, output_size, z=None, gated=False, softplus=False):
+def affine(x, output_size, z=None, gated=False, softplus=False,
+           debug_info=None):
   """Make an affine layer with optional gated link and softplus activation.
 
   Args:
@@ -39,6 +40,8 @@ def affine(x, output_size, z=None, gated=False, softplus=False):
     z: An TF tensor which is added when gated link is enabled.
     gated: A boolean indicating whether to enable gated link.
     softplus: Whether to apply softplus activation at the end.
+    debug_info: Optionally. If specified, it should be a dict to which
+      this method puts something for debugging.
 
   Returns:
     The output tensor.
@@ -50,7 +53,10 @@ def affine(x, output_size, z=None, gated=False, softplus=False):
     gates = tf.nn.sigmoid(x[:, output_size:])
     output = (1 - gates) * z + gates * dz
   else:
-    output = snt.Linear(output_size)(x)
+    linear = snt.Linear(output_size)
+    output = linear(x)
+    if debug_info is not None:
+      debug_info['linear'] = linear
 
   if softplus:
     output = tf.nn.softplus(output)
@@ -156,6 +162,8 @@ class DecoderLatentFull(snt.AbstractModule):
     tf.logging.info(
         'DecoderLatentFull: gated = %s / residual = %s' % (gated, residual))
 
+    self.debug_info = {'affine': {}}
+
   def _build(self, z):  # pylint:disable=W0221
     assert isinstance(z, tuple)
     z = tf.concat(z, axis=-1)
@@ -163,7 +171,14 @@ class DecoderLatentFull(snt.AbstractModule):
     x = z
     x = linears(x, self.layers, residual=self.residual)
 
-    mu = affine(x, self.output_size, z, gated=self.gated, softplus=False)
+    mu = affine(
+        x,
+        self.output_size,
+        z,
+        gated=self.gated,
+        softplus=False,
+        debug_info=self.debug_info['affine'],
+    )
     return mu
 
 
