@@ -105,12 +105,14 @@ def main(unused_argv):
       xs.append(x)
     return xs
 
-  def get_x(dataset):
+  def get_index_list(dataset):
     index_list = []
     for label in labels:
       index_candidate = dataset.index_grouped_by_label[label]
       index_list.append(np.random.choice(index_candidate))
+    return index_list
 
+  def get_x(dataset, index_list):
     x = []
     emphasize = []
     x.append(dataset.train_mu[index_list[0]])
@@ -123,12 +125,31 @@ def main(unused_argv):
     x = np.array(x, dtype=np.float32)
     return x, emphasize
 
-  x_A, emphasize = get_x(dataset_A)
-  x_B, _ = get_x(dataset_B)
+  def get_x_tr2(key_points):
+    x = []
+    emphasize = []
+
+    this_x = key_points[0]
+    x.append(this_x)
+    emphasize.append(len(x) - 1)
+    for i_label in range(1, len(key_points)):
+      last_x = x[-1]
+      this_x = key_points[i_label]
+      x.extend(interpolate(last_x, this_x, nb_images_between_labels)[1:])
+      emphasize.append(len(x) - 1)
+    x = np.array(x, dtype=np.float32)
+    return x, emphasize
+
+  index_list_A = get_index_list(dataset_A)
+  index_list_B = get_index_list(dataset_B)
+  x_A, emphasize = get_x(dataset_A, index_list_A)
+  x_B, _ = get_x(dataset_B, index_list_B)
   x_A_prime = helper_joint.get_x_prime_A(x_A)
   x_B_prime = helper_joint.get_x_prime_B(x_B)
   x_A_tr = helper_joint.get_x_prime_A_from_x_B(x_B)
   x_B_tr = helper_joint.get_x_prime_B_from_x_A(x_A)
+  x_A_tr2, _ = get_x_tr2(np.array([x_A_tr[i] for i in emphasize]))
+  x_B_tr2, _ = get_x_tr2(np.array([x_B_tr[i] for i in emphasize]))
 
   batch_image_fn = partial(
       common.batch_image,
@@ -151,9 +172,11 @@ def main(unused_argv):
   save(helper_A, x_A, 'x_A')
   save(helper_A, x_A_prime, 'x_A_prime')
   save(helper_A, x_A_tr, 'x_A_tr')
+  save(helper_A, x_A_tr2, 'x_A_tr2')
   save(helper_B, x_B, 'x_B')
   save(helper_B, x_B_prime, 'x_B_prime')
   save(helper_B, x_B_tr, 'x_B_tr')
+  save(helper_B, x_B_tr2, 'x_B_tr2')
 
 
 import pdb, traceback, sys, code  # pylint:disable=W0611,C0413,C0411,C0410

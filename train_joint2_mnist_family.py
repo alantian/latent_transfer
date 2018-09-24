@@ -76,9 +76,15 @@ def main(unused_argv):
   eval_batch_size = 1000  # bettert be an multiple of 10.
 
   unsup_iterator_A = common_joint2.DataIterator(
-      dataset_A, max_n=-1, batch_size=batch_size)
+      dataset_A,
+      max_n=-1,
+      batch_size=batch_size,
+      use_interpolated=FLAGS.use_interpolated)
   unsup_iterator_B = common_joint2.DataIterator(
-      dataset_B, max_n=-1, batch_size=batch_size)
+      dataset_B,
+      max_n=-1,
+      batch_size=batch_size,
+      use_interpolated=FLAGS.use_interpolated)
   sup_iterator_A = common_joint2.DataIterator(
       dataset_A, max_n=n_sup, batch_size=batch_size)
   sup_iterator_B = common_joint2.DataIterator(

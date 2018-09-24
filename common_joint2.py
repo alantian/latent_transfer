@@ -811,7 +811,11 @@ class GuassianDataHelper(object):
 class DataIterator(object):
   """Iterator for data."""
 
-  def __init__(self, dataset, max_n, batch_size):
+  VALID_USE_INTERPOLATED_CANDIDATE = {
+      'none', 'linear', 'linear-random', 'spherical', 'spherical-random'
+  }
+
+  def __init__(self, dataset, max_n, batch_size, use_interpolated='none'):
     mu = dataset.train_mu
     sigma = dataset.train_sigma
     self.guassian_data_helper = GuassianDataHelper(mu, sigma)
@@ -833,6 +837,11 @@ class DataIterator(object):
         n_use = len(index_grouped_by_label[i])
       group_by_label[i] = np.array(index_grouped_by_label[i])[:n_use]
 
+    assert use_interpolated in self.VALID_USE_INTERPOLATED_CANDIDATE
+    self.use_interpolated = use_interpolated
+
+    self.debug_first_next_is_done = False
+
   def __iter__(self):
     return self
 
@@ -841,15 +850,63 @@ class DataIterator(object):
     return self.__next__()
 
   def __next__(self):
+    if self.use_interpolated != 'none':
+      real_size = max(1, self.batch_size // 2)
+      int_size = self.batch_size - real_size  # int means interpolated in this method
+    else:
+      real_size = self.batch_size
+      int_size = 0
+
+    batch_x, batch_label = self.pick_batch(real_size)
+
+    if int_size > 0:
+      int_x, int_label = self.get_interpolated(batch_x, int_size)
+      batch_x = np.concatenate((batch_x, int_x), axis=0)
+      batch_label = batch_label + int_label
+
+    if not self.debug_first_next_is_done:
+      tf.logging.info(
+          'iterator: real_size = %d, int_size = %d, batch_x.shape = %s, len(batch_label) = %d',
+          real_size, int_size, batch_x.shape, len(batch_label))
+      self.debug_first_next_is_done = True
+
+    return batch_x, batch_label
+
+  def get_interpolated(self, x, size):
+    index_a = np.remainder(np.arange(size), len(x))
+    index_b = np.random.randint(len(x), size=(size,))
+
+    x_a = x[index_a, :]
+    x_b = x[index_b, :]
+    if self.use_interpolated == 'linear':
+      x_out = x_a * 0.5 + x_b * 0.5
+    if self.use_interpolated == 'linear-random':
+      p = np.random.uniform(0.0, 1.0)
+      x_out = x_a * 0.5 + x_b * 0.5
+    elif self.use_interpolated == 'spherical':
+      sqrt_half = 0.70710678118
+      x_out = x_a * sqrt_half + x_b * sqrt_half
+    elif self.use_interpolated == 'spherical-random':
+      p = np.random.uniform(0.0, 1.0)
+      x_out = x_a * np.sqrt(p) + x_b * np.sqrt(1.0 - p)
+
+    assert x_out.shape == (size, x.shape[1])
+
+    res_x = x_out
+    res_label = [-1] * size
+
+    return res_x, res_label
+
+  def pick_batch(self, batch_size):
     batch_index, batch_label = [], []
-    for i in range(self.pos, self.pos + self.batch_size):
+    for i in range(self.pos, self.pos + batch_size):
       label = i % self.n_label
       index = self.pick_index(label)
       batch_index.append(index)
       batch_label.append(label)
-
-    self.pos += self.batch_size
+    self.pos += batch_size
     batch_x = self.guassian_data_helper.pick_batch(np.array(batch_index))
+
     return batch_x, batch_label
 
   def pick_index(self, label):

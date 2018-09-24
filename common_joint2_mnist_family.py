@@ -47,16 +47,21 @@ tf.flags.DEFINE_float('cls_loss_beta', 0.0, '')
 tf.flags.DEFINE_integer('random_sampling_count', 128, '')
 tf.flags.DEFINE_integer('batch_size', 512, '')
 tf.flags.DEFINE_boolean('use_domain', True, '')
+tf.flags.DEFINE_string('use_interpolated', 'none', '')
 tf.flags.DEFINE_string('sig_extra', '', '')
 
 tf.flags.DEFINE_integer('n_iters', 20000, '')
-tf.flags.DEFINE_integer('n_iters_per_eval', 1000, '')
-tf.flags.DEFINE_integer('n_iters_per_save', 1000, '')
+tf.flags.DEFINE_integer('n_iters_per_eval', 500, '')
+tf.flags.DEFINE_integer('n_iters_per_save', 500, '')
 
 
 def get_sig():
   """Get signature of this run, with parameterization resolved."""
-  return 'sigv2_cA:{cA}:_cb:{cB}:_l:{l}:_cl:{cl}:-r{r}_nl{nl}_nls{nls}_ns{ns}_lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}'.format(  # pylint:disable=C0301
+  s = (
+      'sigv3_cA:{cA}:_cb:{cB}:_l:{l}:_cl:{cl}:-r{r}_nl{nl}_nls{nls}_ns{ns}_'
+      'lr{lr}_plb{plb}_ualb{ualb}_clb{clb}_rsc{rsc}_bs{bs}_ud{ud}_ui{ui}_ni{ni}'
+  )
+  return s.format(
       cA=FLAGS.config_A,
       cB=FLAGS.config_B,
       l=FLAGS.layers,
@@ -72,6 +77,8 @@ def get_sig():
       rsc=FLAGS.random_sampling_count,
       bs=FLAGS.batch_size,
       ud=FLAGS.use_domain,
+      ui=FLAGS.use_interpolated,
+      ni=FLAGS.n_iters,
   ) + FLAGS.sig_extra
 
 
