@@ -39,6 +39,8 @@ from functools import partial
 import importlib
 import os
 
+import librosa
+from matplotlib import cm
 import numpy as np
 from PIL import Image
 import tensorflow as tf
@@ -201,6 +203,42 @@ def get_index_grouped_by_label(label):
   return index_grouped_by_label
 
 
+def audio_to_spectrum(audio_batch):
+
+  def convert_(audio):
+    spectrogram = librosa.feature.melspectrogram(
+        audio[:16384], sr=16000, n_mels=64, n_fft=512, hop_length=256)
+    log_amp = librosa.core.amplitude_to_db(spectrogram)[::-1, :]
+    return log_amp
+
+  audio_batch = audio_batch[:100]
+
+  specturm_batch = [convert_(audio) for audio in audio_batch]
+  specturm_batch = np.array(specturm_batch)
+  specturm_batch = np.clip(specturm_batch, -100.0, 0.0) / 100.0 + 1.0
+  for index_b in range(specturm_batch.shape[0]):
+    min_v_ = specturm_batch[index_b].min()
+    max_v_ = specturm_batch[index_b].max()
+    specturm_batch[
+        index_b] = (specturm_batch[index_b] - min_v_) / (max_v_ - min_v_)
+  # [0., 1.0], means -100 to 0 e.g. 100db to 0db
+
+  # http://thomas-cokelaer.info/blog/2014/09/about-matplotlib-colormap-and-how-to-get-rgb-values-of-the-map/
+
+  img = np.zeros(list(specturm_batch.shape) + [3])
+  for index_b in range(specturm_batch.shape[0]):
+    for index_x in range(specturm_batch.shape[1]):
+      for index_y in range(specturm_batch.shape[2]):
+        v = int(specturm_batch[index_b][index_x][index_y] * 255)
+        r, g, b, _ = cm.plasma(v)
+        img[index_b][index_x][index_y] = [r, g, b]
+
+  # specturm_batch = np.clip(specturm_batch, -100.0, 0.0) / 100.0 + 1.0
+  # [0., 1.0], means -100 to 0 e.g. 100db to 0db
+  # img = np.stack((specturm_batch,) * 3, -1)  # grey -> rgb
+  return img
+
+
 def batch_audio(b, max_samples=60):
   audio = b[:max_samples]
   audio = audio.reshape(-1)
@@ -271,7 +309,7 @@ def make_batch_image_grid(dim_grid, number_grid):
   return batch_image_grid
 
 
-def post_proc(img, config, emphasize=None):
+def post_proc(img, config, emphasize=None, emphasize_color=(1.0, 0.0, 0.0)):
   """Post process image `img` according to the dataset in `config`."""
   x = img
   x = np.minimum(1., np.maximum(0., x))  # clipping
@@ -281,8 +319,10 @@ def post_proc(img, config, emphasize=None):
   if emphasize is not None:
     for i in emphasize:
       # Draw a border
-      x[i, 0, :] = [1.0, 0.0, 0.0]
-      x[i, -1, :] = [1.0, 0.0, 0.0]
-      x[i, :, 0] = [1.0, 0.0, 0.0]
-      x[i, :, -1] = [1.0, 0.0, 0.0]
+      border_size = ((max(x.shape[1], x.shape[2]) + 31) // 32)
+      for border_pos in range(border_size):
+        x[i, 0 + border_pos, :] = list(emphasize_color)
+        x[i, -1 - border_pos, :] = list(emphasize_color)
+        x[i, :, 0 + border_pos] = list(emphasize_color)
+        x[i, :, -1 - border_pos] = list(emphasize_color)
   return x

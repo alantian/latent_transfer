@@ -7,7 +7,6 @@ For MNIST <-> WaveGAN
 import re
 
 shared_pattern = """\
-run_ml_docker ./run_with_available_gpu python3 ./train_joint2_mnist_family.py \
   --default_scratch "~/workspace/scratch/latent_transfer/" \
   --wavegan_gen_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan" \
   --wavegan_inception_ckpt_dir "~/workspace/scratch/latent_transfer/wavegan/incept" \
@@ -31,6 +30,15 @@ train_pattern = """\
 run_ml_docker --no-it python3 ./train_joint2_mnist_family.py \
 """ + shared_pattern
 
+eval_pattern = """\
+run_ml_docker --no-it python3 ./evaluate_joint2_mnist_family.py \
+""" + " " + shared_pattern + " " + """\
+  --load_ckpt_iter 50000 \
+  --interpolate_labels "0,0,0,1,1,1,7,7,7,8,8,8,3,3,3" \
+  --nb_images_between_labels 4 \
+  --random_seed 1145141925 \
+"""
+
 train_cmds = []
 eval_cmds = []
 
@@ -38,20 +46,20 @@ eval_cmds = []
 def add(plb, ualb, clb, ns, ni, ui):
   cmd = train_pattern.format(plb=plb, ualb=ualb, clb=clb, ns=ns, ni=ni, ui=ui)
   cmd = re.sub(' +', ' ', cmd)
-  train_cmds.append(cmd)
+  # train_cmds.append(cmd)
 
-  #cmd = eval_pattern.format(plb=plb, ualb=ualb, clb=clb, ns=ns, ni=ni, ui=ui)
-  #cmd = re.sub(' +', ' ', cmd)
-  #eval_cmds.append(cmd)
+  cmd = eval_pattern.format(plb=plb, ualb=ualb, clb=clb, ns=ns, ni=ni, ui=ui)
+  cmd = re.sub(' +', ' ', cmd)
+  eval_cmds.append(cmd)
 
 
 def main():
   for plb in [0.01]:
     for ualb in [3.0]:
-      for clb in [0.03, 0.3, 0.5]:
+      for clb in [0.3]:
         # for ns in [-1, 0, 10, 100, 1000, 10000]:
         for ns in [-1]:
-          for ni in [20000, 50000]:
+          for ni in [50001]:
             for ui in ['none']:
               if (clb == 0 and ns != -1) or (clb > 0.0 and ns == 0):
                 continue  # no need to waste

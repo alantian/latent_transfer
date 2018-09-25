@@ -340,6 +340,9 @@ class ModelHelperWaveGAN(object):
     #   Variable useing 'G' in is name to be consistent with WaveGAN's author
     #   has name consider to be invalid by pylint so we disable the warning.
 
+    # Fake config
+    self.config = {'dataset': 'wavegan'}
+
     # Dataset (SC09, WaveGAN)'s generator
     graph_sc09_gan = tf.Graph()
     with graph_sc09_gan.as_default():
@@ -424,7 +427,13 @@ class ModelHelperWaveGAN(object):
     pred = np.argmax(pred, axis=-1)
     return pred
 
-  def save_data(self, x, name, save_dir, x_is_real_x=False):
+  def save_data(self,
+                x,
+                name,
+                save_dir,
+                x_is_real_x=False,
+                batch_image_fn=None,
+                emphasize=None):
     """Save dataspace instances.
 
     Args:
@@ -437,9 +446,16 @@ class ModelHelperWaveGAN(object):
     if not x_is_real_x:
       np.savetxt(join(save_dir, '%s.x_array.txt' % name), x)
     real_x = x if x_is_real_x else self.decode(x)
+
     batched_real_x = common.batch_audio(real_x)
     sample_file = join(save_dir, '%s.wav' % name)
     wavfile.write(sample_file, rate=16000, data=batched_real_x)
+
+    spectrum = common.audio_to_spectrum(real_x)
+    spectrum = common.post_proc(spectrum, self.config, emphasize=emphasize)
+    batched_spectrum = (batch_image_fn or common.batch_image)(spectrum)
+    spectrum_sample_file = join(save_dir, '%s.spectrum.png' % name)
+    common.save_image(batched_spectrum, spectrum_sample_file)
 
 
 class OneSideHelper(object):
@@ -751,8 +767,9 @@ class JointVAEHelper(object):
     entropy_ = np.array(
         [entropy(normalize(row)) for row in confusion_matrix_]).sum()
 
-    self.eval_summary('accuracy_' + sig, accuarcy_, i)
-    self.eval_summary('entropy_' + sig, entropy_, i)
+    if i >= 0:
+      self.eval_summary('accuracy_' + sig, accuarcy_, i)
+      self.eval_summary('entropy_' + sig, entropy_, i)
 
     np.savetxt(
         join(eval_dir, 'confusion_matrix_' + sig + '.txt'), confusion_matrix_)

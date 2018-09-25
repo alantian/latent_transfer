@@ -76,6 +76,12 @@ def main(unused_argv):
   helper_A.restore(dataset_A)
   helper_B.restore(dataset_B)
 
+  eval_batch_size = 1000  # bettert be an multiple of 10.
+  eval_iterator_A = common_joint2.DataIterator(
+      dataset_A, max_n=-1, batch_size=eval_batch_size)
+  eval_iterator_B = common_joint2.DataIterator(
+      dataset_B, max_n=-1, batch_size=eval_batch_size)
+
   # prepare intepolate dir
   evaluate_dir = join(sample_dir, 'evaluate', '%010d' % load_ckpt_iter)
   tf.gfile.MakeDirs(evaluate_dir)
@@ -177,6 +183,64 @@ def main(unused_argv):
   save(helper_B, x_B_prime, 'x_B_prime')
   save(helper_B, x_B_tr, 'x_B_tr')
   save(helper_B, x_B_tr2, 'x_B_tr2')
+
+  ############################################################################
+  # Transfer
+  ############################################################################
+
+  eval_x_A, _ = next(eval_iterator_A)
+  eval_x_B, _ = next(eval_iterator_B)
+
+  i = -1  # no writing summary
+  sig_prefix = 'transfer_'
+
+  sig = sig_prefix + 'recons_A'
+  x_A = eval_x_A
+  x_prime_A = helper_joint.get_x_prime_A(x_A)
+  helper_joint.compare(x_A, x_prime_A, helper_A, helper_A, evaluate_dir, i, sig)
+  helper_A.save_data(x_A, sig + '_x_A', evaluate_dir)
+  helper_A.save_data(x_prime_A, sig + '_x_prime_A', evaluate_dir)
+
+  sig = sig_prefix + 'recons_B'
+  x_B = eval_x_B
+  x_prime_B = helper_joint.get_x_prime_B(x_B)
+  helper_joint.compare(x_B, x_prime_B, helper_B, helper_B, evaluate_dir, i, sig)
+  helper_B.save_data(x_B, sig + '_x_B', evaluate_dir)
+  helper_B.save_data(x_prime_B, sig + '_x_prime_B', evaluate_dir)
+
+  sig = sig_prefix + 'sample_joint'
+  x_A, x_B = helper_joint.sample_prior(eval_batch_size)
+  helper_joint.compare(x_A, x_B, helper_A, helper_B, evaluate_dir, i, sig)
+  helper_A.save_data(x_A, sig + '_x_A', evaluate_dir)
+  helper_B.save_data(x_B, sig + '_x_B', evaluate_dir)
+
+  sig = sig_prefix + 'transfer_A_to_B'
+  x_A = eval_x_A
+  x_prime_B = helper_joint.get_x_prime_B_from_x_A(x_A)
+  helper_joint.compare(x_A, x_prime_B, helper_A, helper_B, evaluate_dir, i, sig)
+  helper_A.save_data(x_A, sig + '_x_A', evaluate_dir)
+  helper_B.save_data(x_prime_B, sig + '_x_prime_B', evaluate_dir)
+
+  sig = sig_prefix + 'transfer_B_to_A'
+  x_B = eval_x_B
+  x_prime_A = helper_joint.get_x_prime_A_from_x_B(x_B)
+  helper_joint.compare(x_B, x_prime_A, helper_B, helper_A, evaluate_dir, i, sig)
+  helper_B.save_data(x_B, sig + '_x_B', evaluate_dir)
+  helper_A.save_data(x_prime_A, sig + '_x_prime_A', evaluate_dir)
+
+  sig = sig_prefix + 'sample_transfer_A_to_B'
+  x_A, _ = helper_joint.sample_prior(eval_batch_size)
+  x_prime_B = helper_joint.get_x_prime_B_from_x_A(x_A)
+  helper_joint.compare(x_A, x_prime_B, helper_A, helper_B, evaluate_dir, i, sig)
+  helper_A.save_data(x_A, sig + '_x_A', evaluate_dir)
+  helper_B.save_data(x_prime_B, sig + '_x_prime_B', evaluate_dir)
+
+  sig = sig_prefix + 'sample_transfer_B_to_A'
+  _, x_B = helper_joint.sample_prior(eval_batch_size)
+  x_prime_A = helper_joint.get_x_prime_A_from_x_B(x_B)
+  helper_joint.compare(x_B, x_prime_A, helper_B, helper_A, evaluate_dir, i, sig)
+  helper_B.save_data(x_B, sig + '_x_B', evaluate_dir)
+  helper_A.save_data(x_prime_A, sig + '_x_prime_A', evaluate_dir)
 
 
 import pdb, traceback, sys, code  # pylint:disable=W0611,C0413,C0411,C0410

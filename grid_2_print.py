@@ -31,9 +31,9 @@ eval_pattern = """\
 run_ml_docker --no-it python3 ./evaluate_joint2_mnist_family.py \
 """ + " " + shared_pattern + " " + """\
   --load_ckpt_iter -1 \
-  --interpolate_labels "0,0,1,1,7,7,8,8,3,3" \
-  --nb_images_between_labels 10 \
-  --random_seed 1145141923 \
+  --interpolate_labels "0,0,0,1,1,1,7,7,7,8,8,8,3,3,3" \
+  --nb_images_between_labels 4 \
+  --random_seed 1145141924 \
 """
 
 n_latent_shared = 8
