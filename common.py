@@ -230,7 +230,7 @@ def audio_to_spectrum(audio_batch):
     for index_x in range(specturm_batch.shape[1]):
       for index_y in range(specturm_batch.shape[2]):
         v = int(specturm_batch[index_b][index_x][index_y] * 255)
-        r, g, b, _ = cm.plasma(v)
+        r, g, b, _ = cm.inferno(v)
         img[index_b][index_x][index_y] = [r, g, b]
 
   # specturm_batch = np.clip(specturm_batch, -100.0, 0.0) / 100.0 + 1.0

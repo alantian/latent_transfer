@@ -157,6 +157,13 @@ def main(unused_argv):
   x_A_tr2, _ = get_x_tr2(np.array([x_A_tr[i] for i in emphasize]))
   x_B_tr2, _ = get_x_tr2(np.array([x_B_tr[i] for i in emphasize]))
 
+  z_A = helper_joint.get_q_z_sample_A(x_A)
+  z_A, _ = get_x_tr2(np.array([z_A[i] for i in emphasize]))
+  z_B = helper_joint.get_q_z_sample_B(x_B)
+  z_B, _ = get_x_tr2(np.array([z_B[i] for i in emphasize]))
+  x_A_tr3 = helper_joint.get_x_prime_from_z_A(z_B)
+  x_B_tr3 = helper_joint.get_x_prime_from_z_B(z_A)
+
   batch_image_fn = partial(
       common.batch_image,
       max_images=len(x_A),
@@ -179,10 +186,12 @@ def main(unused_argv):
   save(helper_A, x_A_prime, 'x_A_prime')
   save(helper_A, x_A_tr, 'x_A_tr')
   save(helper_A, x_A_tr2, 'x_A_tr2')
+  save(helper_A, x_A_tr3, 'x_A_tr3')
   save(helper_B, x_B, 'x_B')
   save(helper_B, x_B_prime, 'x_B_prime')
   save(helper_B, x_B_tr, 'x_B_tr')
   save(helper_B, x_B_tr2, 'x_B_tr2')
+  save(helper_B, x_B_tr3, 'x_B_tr3')
 
   ############################################################################
   # Transfer

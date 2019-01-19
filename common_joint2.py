@@ -701,6 +701,56 @@ class JointVAEHelper(object):
     })
     return x_A, x_B
 
+  def get_q_z_sample(self, x, encode_domain_sig):
+    assert encode_domain_sig in ('A', 'B')
+
+    sess = self.sess
+    m = self.m
+
+    domain_A = get_domain_A(x.shape[0])
+    domain_B = get_domain_B(x.shape[0])
+
+    encode_domain = domain_A if encode_domain_sig == 'A' else domain_B
+
+    return sess.run(
+        m.q_z_sample_transfer,
+        {
+            m.x_transfer: x,
+            m.x_transfer_encode_domain: encode_domain,
+        },
+    )
+
+  def get_q_z_sample_A(self, x):
+    return self.get_q_z_sample(x, 'A')
+
+  def get_q_z_sample_B(self, x):
+    return self.get_q_z_sample(x, 'B')
+
+  def get_x_prime_from_z(self, z, decode_domain_sig):
+    assert decode_domain_sig in ('A', 'B')
+
+    sess = self.sess
+    m = self.m
+
+    domain_A = get_domain_A(z.shape[0])
+    domain_B = get_domain_B(z.shape[0])
+
+    decode_domain = domain_A if decode_domain_sig == 'A' else domain_B
+
+    return sess.run(
+        m.x_prime_transfer,
+        {
+            m.q_z_sample_transfer: z,
+            m.x_transfer_decode_domain: decode_domain,
+        },
+    )
+
+  def get_x_prime_from_z_A(self, z):
+    return self.get_x_prime_from_z(z, 'A')
+
+  def get_x_prime_from_z_B(self, z):
+    return self.get_x_prime_from_z(z, 'B')
+
   def get_x_prime(self, x, encode_domain_sig, decode_domain_sig):
     assert encode_domain_sig in ('A', 'B')
     assert decode_domain_sig in ('A', 'B')
